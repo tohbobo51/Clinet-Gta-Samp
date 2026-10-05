@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Basis UI -->
+    <color name="background">#0B0E13</color>
+    <color name="surface">#E6111722</color>
+    <color name="scrim">#4D000000</color>
+    <color name="splash_bg">#0A0D14</color>
+
+    <!-- Aksen (kuning emas khas GTA) -->
+    <color name="accent">#F5B301</color>
+    <color name="accent_start">#FFC93C</color>
+    <color name="accent_end">#F5A200</color>
+    <color name="accent_stroke">#553F5B301</color>
+
+    <!-- Teks -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+
+    <!-- Status / tombol -->
+    <color name="google_btn_bg">#FFFFFFFF</color>
+    <color name="google_btn_text">#FF1F1F1F</color>
+    <color name="danger">#FFFF5A5A</color>
+    <color name="status_ok">#FF6FE3A1</color>
+</resources>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GTA SA-MP Client</string>
+
+    <!-- Splash -->
+    <string name="splash_title">GTA SAN ANDREAS</string>
+    <string name="splash_subtitle">MULTIPLAYER CLIENT</string>
+    <string name="splash_loading">Memuat…</string>
+
+    <!-- Nama server (tengah atas) -->
+    <string name="server_name">SA-MP ROLEPLAY SERVER</string>
+    <string name="server_subtitle">Indonesia • Android Client</string>
+
+    <!-- Autentikasi -->
+    <string name="login_with_google">Login dengan Google</string>
+    <string name="logout">Logout</string>
+    <string name="main_play">MAIN</string>
+
+    <!-- Status -->
+    <string name="status_login_required">Silakan login untuk bermain</string>
+    <string name="status_ready">Siap bermain</string>
+    <string name="status_connecting">Menyambungkan ke %1$s:%2$d…</string>
+    <string name="status_connected">Terhubung ke %1$s — siap bermain</string>
+
+    <!-- Server (ganti sesuai server kamu) -->
+    <string name="server_host">127.0.0.1</string>
+    <string name="server_port">7777</string>
+
+    <!-- Toast -->
+    <string name="toast_signed_in">Halo, %1$s!</string>
+    <string name="toast_signed_out">Anda telah logout</string>
+    <string name="toast_login_failed">Login Google gagal</string>
+    <string name="toast_login_cancelled">Login Google dibatalkan</string>
+    <string name="toast_need_login">Silakan login dengan Google terlebih dahulu</string>
+    <string name="toast_connecting">Menghubungkan ke %1$s:%2$d</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder background UI utama.
+     Untuk memakai gambar sendiri: taruh bg_main.png / bg_main.jpg di
+     res/drawable-nodpi/, lalu ubah android:src pada ImageView ivBackground
+     menjadi @drawable/bg_main -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:centerColor="#0D1219"
+        android:endColor="#06090D"
+        android:startColor="#1B2735" />
+</shape>
