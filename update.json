@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "title": "Data Game Vice Side SAMP CRMP v1.0",
+  "description": "Cache GTA San Andreas 2.10 & Data CRMP Lengkap dari tohbobo51/samp-game-data",
+  "files": [
+    {
+      "path": "gtasa.2.10.cache.zip",
+      "url": "https://github.com/tohbobo51/samp-game-data/releases/download/v1.0/gtasa.2.10.cache.zip",
+      "size": 716092010,
+      "sha256": "e06ce14e8e8ebc4bcb246aa57d9c2efdbcc99b728975fe8de962e99ad7e9c218"
+    },
+    {
+      "path": "CRMP.zip",
+      "url": "https://github.com/tohbobo51/samp-game-data/releases/download/v1.0/CRMP.zip",
+      "size": 1074673867,
+      "sha256": "4854d4176df5a8da3da17bf4aaf58e374c395ab0e1cb68be0a83ab0f6889c7ec"
+    }
+  ]
+}

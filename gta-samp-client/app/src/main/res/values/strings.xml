@@ -48,7 +48,7 @@
     <string name="toast_connecting">Menyambungkan ke %1$s:%2$s…</string>
 
     <!-- Update Data Game -->
-    <string name="update_manifest_url">https://example.com/gta-roleplay/update.json</string>
+    <string name="update_manifest_url">https://raw.githubusercontent.com/tohbobo51/Clinet-Gta-Samp/main/update.json</string>
     <string name="update_check">UPDATE DATA</string>
     <string name="update_title">Update Data Game</string>
     <string name="update_data_version">Data: %1$s</string>

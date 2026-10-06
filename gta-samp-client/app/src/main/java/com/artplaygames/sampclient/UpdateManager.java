@@ -228,6 +228,11 @@ public final class UpdateManager {
                         int overall = (index * 100 + percent) / fileCount;
                         post(() -> listener.onProgress(overall, label + " " + percent + "%"));
                     });
+
+                    if (entry.path.toLowerCase().endsWith(".zip")) {
+                        post(() -> listener.onProgress((index * 100) / fileCount, "Mengekstrak " + shortName(entry.path) + "…"));
+                        unzip(target, root);
+                    }
                 }
 
                 setInstalled(manifest);
@@ -338,6 +343,35 @@ public final class UpdateManager {
         }
         if (!tmp.renameTo(dest)) {
             throw new IOException("Gagal menyimpan " + entry.path);
+        }
+    }
+
+    private void unzip(File zipFile, File targetDir) throws IOException {
+        byte[] buffer = new byte[16 * 1024];
+        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
+                new java.io.BufferedInputStream(new java.io.FileInputStream(zipFile)))) {
+            java.util.zip.ZipEntry ze;
+            while ((ze = zis.getNextEntry()) != null) {
+                if (cancelled.get()) {
+                    throw new IOException("Ekstraksi dibatalkan");
+                }
+                File newFile = resolveSafe(targetDir, ze.getName());
+                if (ze.isDirectory()) {
+                    newFile.mkdirs();
+                } else {
+                    File parent = newFile.getParentFile();
+                    if (parent != null && !parent.exists()) {
+                        parent.mkdirs();
+                    }
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(newFile)) {
+                        int len;
+                        while ((len = zis.read(buffer)) > 0) {
+                            fos.write(buffer, 0, len);
+                        }
+                    }
+                }
+                zis.closeEntry();
+            }
         }
     }
 
