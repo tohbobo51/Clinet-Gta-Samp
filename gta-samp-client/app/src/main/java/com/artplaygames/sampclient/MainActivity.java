@@ -121,16 +121,7 @@ public class MainActivity extends AppCompatActivity {
         setupButtons();
         setupSettingsControls();
 
-        updateManager = new UpdateManager(this, new UpdateManager.UpdateCallback() {
-            @Override
-            public void onUpdateInstalled(UpdateManager.Manifest manifest) {
-                if (isAlive()) {
-                    Toast.makeText(MainActivity.this,
-                            getString(R.string.update_installed, manifest.title),
-                            Toast.LENGTH_LONG).show();
-                }
-            }
-        });
+        updateManager = new UpdateManager(this, getString(R.string.update_manifest_url));
 
         // Tampilkan akun jika sudah ada sesi sebelumnya
         GoogleSignInAccount currentAccount = GoogleSignIn.getLastSignedInAccount(this);
@@ -561,7 +552,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onDownloadSuccess() {
+            public void onInstalled(UpdateManager.Manifest manifest) {
                 dismissProgressDialog();
                 if (!isAlive()) return;
                 Toast.makeText(MainActivity.this,
@@ -570,7 +561,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onDownloadFailed(String error) {
+            public void onFailed(String error) {
                 dismissProgressDialog();
                 if (!isAlive()) return;
                 Toast.makeText(MainActivity.this,
@@ -584,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
         dismissProgressDialog();
         View view = getLayoutInflater().inflate(R.layout.dialog_update_progress, null);
         updateProgressBar = view.findViewById(R.id.progressUpdate);
-        updateProgressText = view.findViewById(R.id.tvProgressDetail);
+        updateProgressText = view.findViewById(R.id.tvUpdateDetail);
 
         updateProgressDialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.update_downloading)
@@ -592,7 +583,7 @@ public class MainActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .setNegativeButton(R.string.update_btn_cancel, (dialog, which) -> {
                     if (updateManager != null) {
-                        updateManager.cancelDownload();
+                        updateManager.cancel();
                     }
                 })
                 .create();
