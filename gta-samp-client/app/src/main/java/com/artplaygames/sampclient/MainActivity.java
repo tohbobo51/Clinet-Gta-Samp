@@ -579,21 +579,16 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder sb = new StringBuilder();
         for (UpdateManager.PackageEntry pkg : needed) {
             totalBytes += pkg.size;
-            sb.append("• ").append(pkg.name).append(" (")
+            sb.append("\n• ").append(pkg.name).append(" (")
                     .append(String.format(Locale.US, "%.1f MB", pkg.size / (1024f * 1024f)))
-                    .append(")
-");
+                    .append(")");
         }
 
-        String msg = "Pembaruan data game diperlukan (" + needed.size() + " paket):
-
-"
+        String totalMb = String.format(Locale.US, "%.1f MB", totalBytes / (1024f * 1024f));
+        String msg = "Pembaruan data game diperlukan (" + needed.size() + " paket):\n"
                 + sb.toString()
-                + "
-Total unduhan: " + String.format(Locale.US, "%.1f MB", totalBytes / (1024f * 1024f))
-                + "
-
-Klik 'UNDUH' untuk memulai pengunduhan dan ekstraksi otomatis.";
+                + "\n\nTotal unduhan: " + totalMb
+                + "\n\nKlik UNDUH untuk memulai pengunduhan dan ekstraksi otomatis.";
 
         new AlertDialog.Builder(this)
                 .setTitle(R.string.update_title)
@@ -602,7 +597,6 @@ Klik 'UNDUH' untuk memulai pengunduhan dan ekstraksi otomatis.";
                 .setNegativeButton(R.string.update_btn_later, null)
                 .show();
     }
-
     private void startDownload(final UpdateManager.Manifest manifest, final List<UpdateManager.PackageEntry> queue) {
         showProgressDialog();
         updateManager.download(manifest, queue, new UpdateManager.Listener() {
