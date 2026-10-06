@@ -1,21 +1,16 @@
 package com.artplaygames.sampclient;
 
 import android.content.Intent;
-import android.os.Build;
-import android.view.WindowManager;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.core.view.WindowInsetsControllerCompat;
 import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import java.util.List;
-import java.util.Locale;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -27,10 +22,12 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -38,19 +35,22 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.tasks.Task;
 
+import java.io.File;
+import java.util.List;
+import java.util.Locale;
+
 /**
  * Vice Side Roleplay - Mobile Client Launcher (Landscape Mode)
  *
- * Alur:
- *   1. Splash Screen Landscape: Logo, bar progres horizontal, pengecekan data game.
- *   2. Main Screen: Kartu panel kiri modern, info akun Google, tombol PLAY & SETTINGS.
- *   3. Panel SETTINGS: Toggle matikan musik, volume slider, kurangi animasi.
+ * Alur Real-time:
+ *   1. Splash Screen: Memeriksa kelengkapan file game nyata di Android/data/com.viceside.mobile/files/.
+ *   2. Jika belum lengkap: Langsung beralih ke UI Unduh Game Data (Screenshot 2) tanpa dialog putih popup.
+ *      Hanya ada SATU tombol: "DOWNLOAD SEKARANG" (tanpa tombol batal).
+ *   3. Jika sudah lengkap: Membuka layar utama (Screenshot 1) dengan status Ready.
  */
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "ViceSideClient";
-
-    private static final long SPLASH_DURATION_MS = 2400L;
     private static final String PREFS_SETTINGS = "vice_settings";
     private static final String KEY_MUTE_MUSIC = "mute_music";
     private static final String KEY_MUSIC_VOLUME = "music_volume";
@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar progressSplash;
     private TextView tvSplashFileStatus;
 
-    // ---- View Konten Utama ----
+    // ---- View Konten Utama (Screenshot 1) ----
     private ConstraintLayout mainContent;
     private TextView tvWelcomeSubtitle;
     private TextView tvAvatarInitial;
@@ -82,9 +82,24 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar sbMusicVolume;
     private SwitchCompat swReduceMotion;
 
+    // ---- View Download Overlay (Screenshot 2) ----
+    private ConstraintLayout downloadContainer;
+    private TextView tvCardPercent;
+    private TextView tvCardFilesCount;
+    private ProgressBar progressCardDownload;
+    private Button btnCardStartDownload;
+    private TextView tvCardDownloadedMb;
+    private TextView tvCardSpeed;
+    private TextView tvCardRemaining;
+    private TextView tvCardTotalSize;
+    private TextView tvCardCurrentFile;
+    private TextView tvCardTip;
+
+    private UpdateManager.Manifest cachedManifest;
+    private List<UpdateManager.PackageEntry> cachedNeededPackages;
+
     // ---- Lifecycle & Media ----
     private final Handler splashHandler = new Handler(Looper.getMainLooper());
-    private final Runnable splashRunnable = this::finishSplash;
     private boolean loadingFinished = false;
     private boolean isResumed = false;
     private MediaPlayer bgmPlayer;
@@ -110,19 +125,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
-    // ---- Update data game ----
+    // ---- Updater Data Game ----
     private UpdateManager updateManager;
-    private AlertDialog updateProgressDialog;
-    private ProgressBar updateProgressBar;
-    private TextView updateProgressText;
-    private TextView tvProgressPercent;
-    private TextView tvDownloadSpeed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Memaksimalkan layar ke area Display Cutout / Notch / Punch Hole kamera (Android 9+)
+        // 1. Memaksimalkan layar ke area Display Cutout / Notch kamera (Android 9+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             WindowManager.LayoutParams lp = getWindow().getAttributes();
             lp.layoutInDisplayCutoutMode =
@@ -132,7 +142,6 @@ public class MainActivity extends AppCompatActivity {
 
         // 2. Set edge-to-edge penuh tanpa padding sistem
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-
         setContentView(R.layout.activity_main);
 
         initViews();
@@ -148,9 +157,8 @@ public class MainActivity extends AppCompatActivity {
         GoogleSignInAccount currentAccount = GoogleSignIn.getLastSignedInAccount(this);
         applyAuthUi(currentAccount);
 
-        // Memulai simulasi progres loading file game di splash screen
+        // Memulai pemindaian file nyata di splash screen
         startSplashProgressAnimation();
-        splashHandler.postDelayed(splashRunnable, SPLASH_DURATION_MS);
     }
 
     private void initViews() {
@@ -169,15 +177,55 @@ public class MainActivity extends AppCompatActivity {
 
         btnMain = findViewById(R.id.btnMain);
         btnSettings = findViewById(R.id.btnSettings);
-
         serverInfoContainer = findViewById(R.id.serverInfoContainer);
         settingsContainer = findViewById(R.id.settingsContainer);
         tvStatus = findViewById(R.id.tvStatus);
         tvServerAddress = findViewById(R.id.tvServerAddress);
-
         swMuteMusic = findViewById(R.id.swMuteMusic);
         sbMusicVolume = findViewById(R.id.sbMusicVolume);
         swReduceMotion = findViewById(R.id.swReduceMotion);
+
+        // Download Overlay Views (Screenshot 2)
+        downloadContainer = findViewById(R.id.downloadContainer);
+        tvCardPercent = findViewById(R.id.tvCardPercent);
+        tvCardFilesCount = findViewById(R.id.tvCardFilesCount);
+        progressCardDownload = findViewById(R.id.progressCardDownload);
+        btnCardStartDownload = findViewById(R.id.btnCardStartDownload);
+        tvCardDownloadedMb = findViewById(R.id.tvCardDownloadedMb);
+        tvCardSpeed = findViewById(R.id.tvCardSpeed);
+        tvCardRemaining = findViewById(R.id.tvCardRemaining);
+        tvCardTotalSize = findViewById(R.id.tvCardTotalSize);
+        tvCardCurrentFile = findViewById(R.id.tvCardCurrentFile);
+        tvCardTip = findViewById(R.id.tvCardTip);
+
+        if (btnCardStartDownload != null) {
+            btnCardStartDownload.setOnClickListener(v -> {
+                if (cachedManifest != null && cachedNeededPackages != null && !cachedNeededPackages.isEmpty()) {
+                    startCardDownload(cachedManifest, cachedNeededPackages);
+                } else {
+                    btnCardStartDownload.setEnabled(false);
+                    btnCardStartDownload.setText("MEMERIKSA PAKET…");
+                    updateManager.check(new UpdateManager.Listener() {
+                        @Override
+                        public void onUpdateAvailable(UpdateManager.Manifest manifest, List<UpdateManager.PackageEntry> neededPackages) {
+                            cachedManifest = manifest;
+                            cachedNeededPackages = neededPackages;
+                            startCardDownload(manifest, neededPackages);
+                        }
+                        @Override
+                        public void onNoUpdate() {
+                            showMainContentScreen();
+                        }
+                        @Override
+                        public void onCheckFailed(String message) {
+                            btnCardStartDownload.setEnabled(true);
+                            btnCardStartDownload.setText("COBA LAGI");
+                            Toast.makeText(MainActivity.this, "Gagal koneksi: " + message, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            });
+        }
     }
 
     private void loadSettingsPreferences() {
@@ -206,7 +254,6 @@ public class MainActivity extends AppCompatActivity {
             insetsController.setSystemBarsBehavior(
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         }
-
         View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -214,8 +261,7 @@ public class MainActivity extends AppCompatActivity {
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-        );
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN);
     }
 
     @Override
@@ -238,15 +284,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
-        super.onPause();
         isResumed = false;
         pauseBackgroundMusic();
+        super.onPause();
     }
 
     @Override
     protected void onDestroy() {
-        splashHandler.removeCallbacks(splashRunnable);
-        dismissProgressDialog();
         if (updateManager != null) {
             updateManager.shutdown();
         }
@@ -255,89 +299,234 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================================================================
-    //  1. Splash Screen & Progres Pengecekan Berkas
+    //  1. Splash Screen & Pemeriksaan File Nyata (Real-time File Scanning)
     // ==================================================================
     private void startSplashProgressAnimation() {
         if (progressSplash == null) return;
-        progressSplash.setProgress(15);
+        progressSplash.setProgress(5);
+        if (tvSplashFileStatus != null) {
+            tvSplashFileStatus.setText("Memeriksa data file game…");
+        }
 
-        splashHandler.postDelayed(() -> {
-            if (isAlive()) {
-                progressSplash.setProgress(55);
+        // Jalankan pengecekan file fisik di latar belakang
+        new Thread(() -> {
+            File gameDir = updateManager.getGameDataDir();
+            final int totalTargetFiles = 7152;
+            int scannedFiles = 0;
+
+            if (gameDir != null && gameDir.exists()) {
+                scannedFiles = countFilesRecursive(gameDir, totalTargetFiles);
             }
-        }, 700);
 
-        splashHandler.postDelayed(() -> {
-            if (isAlive()) {
-                progressSplash.setProgress(88);
+            final int finalScanned = scannedFiles;
+            final boolean isComplete = updateManager.isGameDataComplete();
+
+            // Animasi transisi progres berbasis scan nyata
+            int targetProgress = isComplete ? 100 : Math.min(85, Math.max(15, (finalScanned * 100) / totalTargetFiles));
+            for (int p = 15; p <= targetProgress; p += 15) {
+                final int currentP = p;
+                runOnUiThread(() -> {
+                    if (isAlive() && progressSplash != null) {
+                        progressSplash.setProgress(currentP);
+                    }
+                });
+                try { Thread.sleep(60); } catch (InterruptedException ignored) {}
             }
-        }, 1500);
 
-        splashHandler.postDelayed(() -> {
-            if (isAlive()) {
-                progressSplash.setProgress(100);
-                if (tvSplashFileStatus != null) {
-                    tvSplashFileStatus.setText(R.string.splash_files_done);
+            runOnUiThread(() -> {
+                if (!isAlive()) return;
+                if (isComplete) {
+                    if (progressSplash != null) progressSplash.setProgress(100);
+                    if (tvSplashFileStatus != null) {
+                        tvSplashFileStatus.setText(R.string.splash_files_done);
+                    }
+                    splashHandler.postDelayed(() -> finishSplash(true), 400);
+                } else {
+                    if (tvSplashFileStatus != null) {
+                        tvSplashFileStatus.setText("Memeriksa file (" + finalScanned + " / " + totalTargetFiles + "): Belum lengkap");
+                    }
+                    splashHandler.postDelayed(() -> finishSplash(false), 500);
                 }
-            }
-        }, 2000);
+            });
+        }).start();
     }
 
-    private void finishSplash() {
-        if (!isAlive()) {
-            return;
+    private int countFilesRecursive(File dir, int limit) {
+        if (dir == null || !dir.exists()) return 0;
+        int count = 0;
+        File[] files = dir.listFiles();
+        if (files == null) return 0;
+        for (File f : files) {
+            if (f.isDirectory()) {
+                count += countFilesRecursive(f, limit - count);
+            } else {
+                count++;
+            }
+            if (count >= limit) break;
         }
+        return count;
+    }
+
+    private void finishSplash(boolean isComplete) {
+        if (!isAlive()) return;
         loadingFinished = true;
 
-        mainContent.setVisibility(View.VISIBLE);
-        mainContent.animate()
-                .alpha(1f)
-                .setDuration(450)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
-                .start();
-
-        splashContainer.animate()
-                .alpha(0f)
-                .setDuration(400)
-                .withEndAction(() -> splashContainer.setVisibility(View.GONE))
-                .start();
+        if (splashContainer != null) {
+            splashContainer.animate()
+                    .alpha(0f)
+                    .setDuration(400)
+                    .withEndAction(() -> splashContainer.setVisibility(View.GONE))
+                    .start();
+        }
 
         if (isResumed && !isMuted) {
             startBackgroundMusic();
         }
 
-        // Cek update aset game di latar belakang
-        checkForUpdates(false);
+        if (isComplete) {
+            showMainContentScreen();
+        } else {
+            // Langsung tampilkan UI Unduh Screenshot 2 tanpa dialog popup putih!
+            showDownloadScreen();
+        }
+    }
+
+    private void showMainContentScreen() {
+        if (downloadContainer != null) {
+            downloadContainer.setVisibility(View.GONE);
+        }
+        if (mainContent != null) {
+            mainContent.setVisibility(View.VISIBLE);
+            mainContent.animate().alpha(1f).setDuration(450).start();
+        }
+    }
+
+    private void showDownloadScreen() {
+        if (mainContent != null) {
+            mainContent.setVisibility(View.GONE);
+        }
+        if (downloadContainer != null) {
+            downloadContainer.setAlpha(0f);
+            downloadContainer.setVisibility(View.VISIBLE);
+            downloadContainer.animate().alpha(1f).setDuration(450).start();
+        }
+
+        if (btnCardStartDownload != null) {
+            btnCardStartDownload.setVisibility(View.VISIBLE);
+            btnCardStartDownload.setText("DOWNLOAD SEKARANG");
+        }
+
+        // Cek detail paket dari version.json
+        updateManager.check(new UpdateManager.Listener() {
+            @Override
+            public void onUpdateAvailable(UpdateManager.Manifest manifest, List<UpdateManager.PackageEntry> neededPackages) {
+                cachedManifest = manifest;
+                cachedNeededPackages = neededPackages;
+                long totalBytes = 0;
+                for (UpdateManager.PackageEntry p : neededPackages) {
+                    totalBytes += p.size;
+                }
+                if (tvCardTotalSize != null) {
+                    tvCardTotalSize.setText(String.format(Locale.US, "%.2f GB", totalBytes / (1024f * 1024f * 1024f)));
+                }
+                if (tvCardCurrentFile != null && !neededPackages.isEmpty()) {
+                    tvCardCurrentFile.setText(neededPackages.get(0).name);
+                }
+            }
+
+            @Override
+            public void onNoUpdate() {
+                showMainContentScreen();
+            }
+
+            @Override
+            public void onCheckFailed(String message) {
+                if (tvCardCurrentFile != null) {
+                    tvCardCurrentFile.setText("Menunggu koneksi internet...");
+                }
+            }
+        });
+    }
+
+    private void startCardDownload(final UpdateManager.Manifest manifest, final List<UpdateManager.PackageEntry> queue) {
+        if (btnCardStartDownload != null) {
+            btnCardStartDownload.setVisibility(View.GONE);
+        }
+
+        updateManager.download(manifest, queue, new UpdateManager.Listener() {
+            @Override
+            public void onProgress(int percent, String detail, String speedText) {
+                if (!isAlive()) return;
+                if (progressCardDownload != null) {
+                    progressCardDownload.setProgress(percent);
+                }
+                if (tvCardPercent != null) {
+                    tvCardPercent.setText(percent + "%");
+                }
+                if (tvCardCurrentFile != null) {
+                    tvCardCurrentFile.setText(detail);
+                }
+                if (tvCardSpeed != null) {
+                    tvCardSpeed.setText(speedText.contains("•") ? speedText.split("•")[0].trim() : speedText);
+                }
+                if (tvCardDownloadedMb != null && speedText.contains("•")) {
+                    String[] parts = speedText.split("•");
+                    if (parts.length > 1) {
+                        tvCardDownloadedMb.setText(parts[1].trim());
+                    }
+                }
+                if (tvCardFilesCount != null) {
+                    int estFiles = (int) ((percent / 100f) * 7152);
+                    tvCardFilesCount.setText(estFiles + " / 7152 files");
+                }
+            }
+
+            @Override
+            public void onInstalled(UpdateManager.Manifest manifest) {
+                if (!isAlive()) return;
+                Toast.makeText(MainActivity.this,
+                        "Data game berhasil dipasang & siap dimainkan!",
+                        Toast.LENGTH_LONG).show();
+                if (tvStatus != null) {
+                    tvStatus.setText(R.string.status_ready);
+                }
+                showMainContentScreen();
+            }
+
+            @Override
+            public void onFailed(String error) {
+                if (!isAlive()) return;
+                Toast.makeText(MainActivity.this,
+                        "Unduhan gagal: " + error,
+                        Toast.LENGTH_LONG).show();
+                if (btnCardStartDownload != null) {
+                    btnCardStartDownload.setVisibility(View.VISIBLE);
+                    btnCardStartDownload.setText("COBA LAGI");
+                }
+            }
+        });
     }
 
     // ==================================================================
     //  2. Audio / Background Music
     // ==================================================================
     private void startBackgroundMusic() {
-        if (isMuted) {
-            return;
-        }
+        if (isMuted) return;
         if (bgmPlayer == null) {
             int resId = getResources().getIdentifier("bgm", "raw", getPackageName());
-            if (resId == 0) {
-                Log.w(TAG, "Musik latar tidak ditemukan — letakkan file di res/raw/bgm.mp3");
-                return;
-            }
+            if (resId == 0) return;
             try {
                 bgmPlayer = MediaPlayer.create(this, resId);
-                if (bgmPlayer == null) {
-                    Log.w(TAG, "MediaPlayer gagal dibuat untuk raw/bgm");
-                    return;
+                if (bgmPlayer != null) {
+                    bgmPlayer.setLooping(true);
+                    bgmPlayer.setVolume(currentVolume, currentVolume);
+                    bgmPlayer.start();
                 }
-                bgmPlayer.setLooping(true);
-                bgmPlayer.setVolume(currentVolume, currentVolume);
             } catch (Exception e) {
-                Log.e(TAG, "Gagal memuat musik latar", e);
-                bgmPlayer = null;
-                return;
+                Log.w(TAG, "Gagal memutar musik", e);
             }
-        }
-        if (!bgmPlayer.isPlaying()) {
+        } else if (!bgmPlayer.isPlaying()) {
+            bgmPlayer.setVolume(currentVolume, currentVolume);
             bgmPlayer.start();
         }
     }
@@ -351,17 +540,15 @@ public class MainActivity extends AppCompatActivity {
     private void releaseBackgroundMusic() {
         if (bgmPlayer != null) {
             try {
-                bgmPlayer.stop();
-            } catch (Exception e) {
-                Log.w(TAG, "stop() MediaPlayer gagal", e);
-            }
-            bgmPlayer.release();
+                if (bgmPlayer.isPlaying()) bgmPlayer.stop();
+                bgmPlayer.release();
+            } catch (Exception ignored) {}
             bgmPlayer = null;
         }
     }
 
     // ==================================================================
-    //  3. Autentikasi Google
+    //  3. Google Sign-In & Tampilan Akun
     // ==================================================================
     private void setupGoogleSignIn() {
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -371,46 +558,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onSignInSuccess(GoogleSignInAccount account) {
+        applyAuthUi(account);
         String name = account.getDisplayName() != null ? account.getDisplayName() : "Pemain";
         Toast.makeText(this, getString(R.string.toast_signed_in, name), Toast.LENGTH_SHORT).show();
-        applyAuthUi(account);
-        if (tvStatus != null) {
-            tvStatus.setText(R.string.status_ready);
-        }
     }
 
     private void signOut() {
-        signInClient.signOut().addOnCompleteListener(this, task -> {
+        if (signInClient != null) {
+            signInClient.signOut().addOnCompleteListener(this, task -> {
+                applyAuthUi(null);
+                Toast.makeText(this, R.string.toast_signed_out, Toast.LENGTH_SHORT).show();
+            });
+        } else {
             applyAuthUi(null);
-            Toast.makeText(this, R.string.toast_signed_out, Toast.LENGTH_SHORT).show();
-        });
+        }
     }
 
     private void applyAuthUi(GoogleSignInAccount account) {
         boolean signedIn = (account != null);
         if (signedIn) {
-            String name = account.getDisplayName() != null ? account.getDisplayName() : "Gtasamp01212";
-            String email = account.getEmail() != null ? account.getEmail() : "gtasamp01212@gmail.com";
-
-            tvAccountBadge.setText(R.string.account_connected);
-            tvAccountBadge.setTextColor(getResources().getColor(R.color.status_connected_green));
+            String name = account.getDisplayName() != null ? account.getDisplayName() : "Pemain";
+            String email = account.getEmail() != null ? account.getEmail() : "-";
             tvAccountName.setText(name);
             tvAccountEmail.setText(email);
+            tvAccountBadge.setText(R.string.account_connected);
+            tvAccountBadge.setTextColor(getColor(R.color.status_connected_green));
             tvWelcomeSubtitle.setText(getString(R.string.welcome_back, name));
-
-            String initial = !name.isEmpty() ? name.substring(0, 1).toUpperCase() : "G";
+            String initial = name.isEmpty() ? "P" : name.substring(0, 1).toUpperCase(Locale.ROOT);
             tvAvatarInitial.setText(initial);
-
             btnLogout.setVisibility(View.VISIBLE);
             btnGoogleSignIn.setVisibility(View.GONE);
         } else {
             tvAccountBadge.setText(R.string.account_disconnected);
-            tvAccountBadge.setTextColor(getResources().getColor(R.color.text_muted));
+            tvAccountBadge.setTextColor(getColor(R.color.text_muted));
             tvAccountName.setText(R.string.guest_user);
             tvAccountEmail.setText(R.string.guest_email);
             tvWelcomeSubtitle.setText(R.string.welcome_guest);
             tvAvatarInitial.setText("?");
-
             btnLogout.setVisibility(View.GONE);
             btnGoogleSignIn.setVisibility(View.VISIBLE);
         }
@@ -422,14 +606,13 @@ public class MainActivity extends AppCompatActivity {
     private void setupButtons() {
         btnMain.setOnClickListener(v -> {
             if (!updateManager.isGameDataComplete()) {
-                showGameDataIncompleteDialog();
+                showDownloadScreen();
                 return;
             }
             connectToServer();
         });
 
         btnSettings.setOnClickListener(v -> {
-            // Toggle antara Tampilan Server Info dan Panel Pengaturan
             if (settingsContainer.getVisibility() == View.VISIBLE) {
                 settingsContainer.setVisibility(View.GONE);
                 serverInfoContainer.setVisibility(View.VISIBLE);
@@ -450,7 +633,6 @@ public class MainActivity extends AppCompatActivity {
                     .edit()
                     .putBoolean(KEY_MUTE_MUSIC, isMuted)
                     .apply();
-
             if (isMuted) {
                 pauseBackgroundMusic();
             } else if (isResumed && loadingFinished) {
@@ -470,10 +652,8 @@ public class MainActivity extends AppCompatActivity {
                         .putInt(KEY_MUSIC_VOLUME, progress)
                         .apply();
             }
-
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {}
-
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
@@ -489,11 +669,9 @@ public class MainActivity extends AppCompatActivity {
     private void connectToServer() {
         String host = getString(R.string.server_host);
         String port = getString(R.string.server_port);
-
         tvStatus.setText(R.string.status_connecting);
         Toast.makeText(this, getString(R.string.toast_connecting, host, port), Toast.LENGTH_SHORT).show();
 
-        // Coba buka package game SA-MP jika terpasang
         boolean launched = tryLaunchGameClient(host, port);
         if (!launched) {
             splashHandler.postDelayed(() -> {
@@ -511,7 +689,6 @@ public class MainActivity extends AppCompatActivity {
                 "ru.unisamp_mobile.game",
                 "com.samp.mobile"
         };
-
         for (String pkg : targetPackages) {
             Intent intent = getPackageManager().getLaunchIntentForPackage(pkg);
             if (intent != null && !pkg.equals(getPackageName())) {
@@ -530,134 +707,5 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isAlive() {
         return !isFinishing() && !isDestroyed();
-    }
-
-    // ==================================================================
-    //  5. Pengecekan Kelengkapan Data Game & Auto-Updater
-    // ==================================================================
-    private void showGameDataIncompleteDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.game_data_incomplete_title)
-                .setMessage(getString(R.string.game_data_incomplete_msg, "GTA SA Cache & CRMP Assets"))
-                .setCancelable(false)
-                .setPositiveButton(R.string.btn_update, (dialog, which) -> checkForUpdates(true))
-                .show();
-    }
-
-    private void checkForUpdates(final boolean userInitiated) {
-        updateManager.check(new UpdateManager.Listener() {
-            @Override
-            public void onNoUpdate() {
-                if (!isAlive()) return;
-                if (userInitiated) {
-                    Toast.makeText(MainActivity.this, R.string.update_none, Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onUpdateAvailable(UpdateManager.Manifest manifest, List<UpdateManager.PackageEntry> neededPackages) {
-                if (!isAlive()) return;
-                showUpdateDialog(manifest, neededPackages);
-            }
-
-            @Override
-            public void onCheckFailed(String message) {
-                if (!isAlive()) return;
-                if (userInitiated) {
-                    Toast.makeText(MainActivity.this,
-                            getString(R.string.update_check_failed, message),
-                            Toast.LENGTH_LONG).show();
-                } else {
-                    Log.w(TAG, "Cek update otomatis: " + message);
-                }
-            }
-        });
-    }
-
-    private void showUpdateDialog(final UpdateManager.Manifest manifest, final List<UpdateManager.PackageEntry> needed) {
-        long totalBytes = 0;
-        StringBuilder sb = new StringBuilder();
-        for (UpdateManager.PackageEntry pkg : needed) {
-            totalBytes += pkg.size;
-            sb.append("\n• ").append(pkg.name).append(" (")
-                    .append(String.format(Locale.US, "%.1f MB", pkg.size / (1024f * 1024f)))
-                    .append(")");
-        }
-
-        String totalMb = String.format(Locale.US, "%.1f MB", totalBytes / (1024f * 1024f));
-        String msg = "Pembaruan data game diperlukan (" + needed.size() + " paket):\n"
-                + sb.toString()
-                + "\n\nTotal unduhan: " + totalMb
-                + "\n\nKlik UNDUH untuk memulai pengunduhan dan ekstraksi otomatis.";
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.update_title)
-                .setMessage(msg)
-                .setCancelable(false)
-                .setPositiveButton(R.string.update_btn_download, (dialog, which) -> startDownload(manifest, needed))
-                .show();
-    }
-    private void startDownload(final UpdateManager.Manifest manifest, final List<UpdateManager.PackageEntry> queue) {
-        showProgressDialog();
-        updateManager.download(manifest, queue, new UpdateManager.Listener() {
-            @Override
-            public void onProgress(int percent, String detail, String speedText) {
-                if (updateProgressBar == null || updateProgressText == null) return;
-                updateProgressBar.setProgress(percent);
-                updateProgressText.setText(detail);
-                if (tvProgressPercent != null) {
-                    tvProgressPercent.setText(percent + "%");
-                }
-                if (tvDownloadSpeed != null) {
-                    tvDownloadSpeed.setText(speedText);
-                }
-            }
-
-            @Override
-            public void onInstalled(UpdateManager.Manifest manifest) {
-                dismissProgressDialog();
-                if (!isAlive()) return;
-                Toast.makeText(MainActivity.this,
-                        "Data game berhasil dipasang & siap dimainkan!",
-                        Toast.LENGTH_LONG).show();
-                if (tvStatus != null) {
-                    tvStatus.setText(R.string.status_ready);
-                }
-            }
-
-            @Override
-            public void onFailed(String error) {
-                dismissProgressDialog();
-                if (!isAlive()) return;
-                Toast.makeText(MainActivity.this,
-                        getString(R.string.update_failed, error),
-                        Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private void showProgressDialog() {
-        dismissProgressDialog();
-        View view = getLayoutInflater().inflate(R.layout.dialog_update_progress, null);
-        updateProgressBar = view.findViewById(R.id.progressUpdate);
-        updateProgressText = view.findViewById(R.id.tvUpdateDetail);
-        tvProgressPercent = view.findViewById(R.id.tvProgressPercent);
-        tvDownloadSpeed = view.findViewById(R.id.tvDownloadSpeed);
-
-        updateProgressDialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.update_downloading)
-                .setView(view)
-                .setCancelable(false)
-                .create();
-        updateProgressDialog.show();
-    }
-
-    private void dismissProgressDialog() {
-        if (updateProgressDialog != null && updateProgressDialog.isShowing()) {
-            updateProgressDialog.dismiss();
-        }
-        updateProgressDialog = null;
-        updateProgressBar = null;
-        updateProgressText = null;
     }
 }
