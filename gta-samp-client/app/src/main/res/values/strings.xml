@@ -1,46 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GTA SA-MP Client</string>
+    <string name="app_name">Vice Side Mobile</string>
 
-    <!-- Splash -->
-    <string name="splash_title">GTA SAN ANDREAS</string>
-    <string name="splash_subtitle">MULTIPLAYER CLIENT</string>
-    <string name="splash_loading">Memuat…</string>
+    <!-- Header & Brand -->
+    <string name="brand_badge">VICE SIDE ROLEPLAY</string>
+    <string name="brand_subtitle">Vice Side Mobile</string>
+    <string name="splash_loading_title">VICE SIDE LOADING…</string>
+    <string name="splash_checking_files">Memeriksa data file game…</string>
+    <string name="splash_files_done">Memeriksa file (7152 / 7152): Selesai</string>
 
-    <!-- Nama server (tengah atas) -->
-    <string name="server_name">SA-MP ROLEPLAY SERVER</string>
-    <string name="server_subtitle">Indonesia • Android Client</string>
+    <!-- Welcome & Account -->
+    <string name="welcome_title">Welcome home.</string>
+    <string name="welcome_back">Welcome back, %1$s!</string>
+    <string name="welcome_guest">Welcome to Vice Side Roleplay!</string>
+    <string name="account_connected">AKUN GOOGLE TERHUBUNG</string>
+    <string name="account_disconnected">BELUM LOGIN</string>
+    <string name="guest_user">Pemain Baru</string>
+    <string name="guest_email">Ketuk untuk login akun Google</string>
+    <string name="login_with_google">LOGIN</string>
+    <string name="logout">LOGOUT</string>
 
-    <!-- Autentikasi -->
-    <string name="login_with_google">Login dengan Google</string>
-    <string name="logout">Logout</string>
-    <string name="main_play">MAIN</string>
+    <!-- Actions -->
+    <string name="play">PLAY</string>
+    <string name="settings">SETTINGS</string>
 
-    <!-- Status -->
-    <string name="status_login_required">Silakan login untuk bermain</string>
-    <string name="status_ready">Siap bermain</string>
-    <string name="status_connecting">Menyambungkan ke %1$s:%2$d…</string>
-    <string name="status_connected">Terhubung ke %1$s — siap bermain</string>
+    <!-- Server Info -->
+    <string name="server_label">SERVER</string>
+    <string name="server_address">15.235.175.76:7005</string>
+    <string name="server_host">15.235.175.76</string>
+    <string name="server_port">7005</string>
+    <string name="status_label">STATUS</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_connecting">Menghubungkan…</string>
+    <string name="status_connected">Connected</string>
 
-    <!-- Server (ganti sesuai server kamu) -->
-    <string name="server_host">127.0.0.1</string>
-    <string name="server_port">7777</string>
+    <!-- Settings Panel -->
+    <string name="settings_mute_music">Matikan musik</string>
+    <string name="settings_volume_music">Volume musik</string>
+    <string name="settings_reduce_motion">Kurangi animasi</string>
 
-    <!-- Toast -->
+    <!-- Toasts & Notifications -->
     <string name="toast_signed_in">Halo, %1$s!</string>
     <string name="toast_signed_out">Anda telah logout</string>
     <string name="toast_login_failed">Login Google gagal</string>
     <string name="toast_login_cancelled">Login Google dibatalkan</string>
-    <string name="toast_need_login">Silakan login dengan Google terlebih dahulu</string>
-    <string name="toast_connecting">Menghubungkan ke %1$s:%2$d</string>
+    <string name="toast_need_login">Silakan login terlebih dahulu untuk bermain</string>
+    <string name="toast_connecting">Menyambungkan ke %1$s:%2$s…</string>
 
-    <!-- Update data game (fitur auto-check + unduh aset) -->
+    <!-- Update Data Game -->
+    <string name="update_manifest_url">https://example.com/gta-roleplay/update.json</string>
     <string name="update_check">UPDATE DATA</string>
     <string name="update_title">Update Data Game</string>
     <string name="update_data_version">Data: %1$s</string>
     <string name="update_data_none">Data: belum terpasang</string>
-    <!-- Ganti dengan URL manifest update milikmu (lihat README) -->
-    <string name="update_manifest_url">https://example.com/gta-roleplay/update.json</string>
     <string name="update_available">%1$s\n\n%2$d file • versi %3$d\n\n%4$s</string>
     <string name="update_none">Data game sudah versi terbaru</string>
     <string name="update_check_failed">Gagal cek update: %1$s</string>
@@ -51,19 +63,4 @@
     <string name="update_btn_later">NANTI</string>
     <string name="update_btn_cancel">BATAL</string>
     <string name="update_progress_hint">File disimpan di penyimpanan aplikasi (Android/data)</string>
-
-    <!-- Aksi cepat roleplay -->
-    <string name="quick_action_title">AKSI CEPAT ROLEPLAY</string>
-    <string name="quick_action_dialog">Aksi cepat: %1$s</string>
-    <string name="quick_action_hint">Tulis teks (opsional)…</string>
-    <string name="quick_action_copy">SALIN</string>
-    <string name="quick_action_cancel">BATAL</string>
-    <string name="quick_action_copied">Disalin: %1$s</string>
-    <string name="action_me">/me</string>
-    <string name="action_do">/do</string>
-    <string name="action_ooc">/ooc</string>
-    <string name="action_b">/b</string>
-    <string name="action_report">/report</string>
-    <string name="action_stats">/stats</string>
-    <string name="action_inventory">/inv</string>
 </resources>

@@ -1,24 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Basis UI -->
-    <color name="background">#0B0E13</color>
-    <color name="surface">#E6111722</color>
-    <color name="scrim">#4D000000</color>
-    <color name="splash_bg">#0A0D14</color>
-
-    <!-- Aksen (kuning emas khas GTA) -->
-    <color name="accent">#F5B301</color>
-    <color name="accent_start">#FFC93C</color>
-    <color name="accent_end">#F5A200</color>
-    <color name="accent_stroke">#553F5B30</color>
-
-    <!-- Teks -->
-    <color name="text_primary">#FFFFFFFF</color>
-    <color name="text_secondary">#B3FFFFFF</color>
-
-    <!-- Status / tombol -->
-    <color name="google_btn_bg">#FFFFFFFF</color>
-    <color name="google_btn_text">#FF1F1F1F</color>
-    <color name="danger">#FFFF5A5A</color>
-    <color name="status_ok">#FF6FE3A1</color>
+    <!-- Background & Surface (Vice Side Synthwave Dark) -->
+    <color name="background">#06050A</color>
+    <color name="surface_card">#E6141324</color>
+    <color name="surface_card_stroke">#3A2C2A48</color>
+    <color name="surface_card_stroke_focused">#6B46C1</color>
+    
+    <!-- Account Card -->
+    <color name="account_card_bg">#1D1C2E</color>
+    <color name="account_card_stroke">#332E47</color>
+    <color name="avatar_teal">#14B8A6</color>
+    <color name="avatar_text">#FFFFFF</color>
+    
+    <!-- Purple Accents -->
+    <color name="purple_primary">#8B5CF6</color>
+    <color name="purple_dark">#7C3AED</color>
+    <color name="purple_light">#C084FC</color>
+    <color name="purple_neon">#A855F7</color>
+    <color name="purple_track">#1F1A35</color>
+    
+    <!-- Button Settings -->
+    <color name="btn_settings_bg">#252438</color>
+    <color name="btn_settings_stroke">#3C3956</color>
+    <color name="btn_settings_text">#FFFFFF</color>
+    
+    <!-- Logout / Danger -->
+    <color name="logout_bg">#26161D</color>
+    <color name="logout_stroke">#7F1D1D</color>
+    <color name="logout_text">#EF4444</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#9CA3AF</color>
+    <color name="text_muted">#6B7280</color>
+    <color name="status_connected_green">#10B981</color>
+    
+    <!-- Scrim / Overlays -->
+    <color name="scrim_left">#8806050A</color>
+    <color name="splash_bg">#000000</color>
 </resources>

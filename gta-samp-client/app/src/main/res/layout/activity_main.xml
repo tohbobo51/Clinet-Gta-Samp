@@ -1,14 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    activity_main.xml
-    Root: ConstraintLayout
-      1. Gambar latar UI utama  -> ivBackground
-      2. Konten utama           -> mainContent (muncul setelah loading selesai)
-           - tvServerName  : teks nama server, tengah atas (animasi floating)
-           - authGroup     : pojok kiri atas (Login Google / Logout / MAIN)
-           - tvStatus      : indikator status koneksi di bawah
-      3. Splash screen + loading -> splashContainer (ditutup otomatis)
--->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -18,31 +8,31 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <!-- ===================== BACKGROUND IMAGE ===================== -->
+    <!-- ===================== 1. FULLSCREEN BACKGROUND (LANDSCAPE) ===================== -->
     <ImageView
         android:id="@+id/ivBackground"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:contentDescription="@null"
         android:scaleType="centerCrop"
-        android:src="@drawable/bg_gradient"
+        android:src="@drawable/bg_main"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Supaya teks tetap terbaca di atas foto -->
+    <!-- Dark gradient scrim on the left side to keep text crystal clear -->
     <View
         android:id="@+id/scrim"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@color/scrim"
+        android:background="@color/scrim_left"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- ===================== KONTEN UTAMA ===================== -->
+    <!-- ===================== 2. MAIN CONTENT ===================== -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/mainContent"
         android:layout_width="0dp"
@@ -54,253 +44,361 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- ======== 4. NAMA SERVER (TENGAH ATAS) ======== -->
-        <TextView
-            android:id="@+id/tvServerName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:fontFamily="sans-serif-black"
-            android:letterSpacing="0.06"
-            android:text="@string/server_name"
-            android:textColor="@color/accent"
-            android:textSize="22sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/tvServerSubtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:letterSpacing="0.15"
-            android:text="@string/server_subtitle"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvServerName" />
-
-        <!-- ======== 3. POJOK KIRI ATAS: LOGIN / LOGOUT / MAIN ======== -->
+        <!-- Frosted Dark Card Panel (Left side, matching Vice Side UI) -->
         <LinearLayout
-            android:id="@+id/authGroup"
-            android:layout_width="wrap_content"
+            android:id="@+id/cardMainPanel"
+            android:layout_width="430dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="24dp"
             android:layout_marginTop="16dp"
-            android:background="@drawable/panel_bg"
-            android:elevation="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/panel_card_bg"
+            android:elevation="12dp"
             android:orientation="vertical"
-            android:padding="14dp"
+            android:padding="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Tombol Login dengan Google (tampil bila belum login) -->
-            <Button
-                android:id="@+id/btnGoogleSignIn"
-                style="@style/AuthButton"
-                android:layout_width="match_parent"
+            <!-- Brand Badge with Green Dot -->
+            <LinearLayout
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/btn_google"
-                android:backgroundTint="@null"
-                android:text="@string/login_with_google"
-                android:textColor="@color/google_btn_text" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <!-- Tombol Logout (tampil setelah berhasil login) -->
-            <Button
-                android:id="@+id/btnLogout"
-                style="@style/AuthButton"
-                android:layout_width="match_parent"
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/status_dot_green" />
+
+                <TextView
+                    android:id="@+id/tvBrandBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="0.15"
+                    android:text="@string/brand_badge"
+                    android:textColor="@color/purple_light"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Main Heading -->
+            <TextView
+                android:id="@+id/tvWelcomeTitle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/btn_logout"
-                android:backgroundTint="@null"
-                android:text="@string/logout"
-                android:textColor="@color/danger"
-                android:visibility="gone"
-                tools:visibility="visible" />
+                android:layout_marginTop="6dp"
+                android:fontFamily="sans-serif-black"
+                android:text="@string/welcome_title"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp" />
 
-            <!-- Tombol utama MAIN — tepat di bawah tombol Logout -->
-            <Button
-                android:id="@+id/btnMain"
-                style="@style/PlayButton"
+            <!-- Subtitle -->
+            <TextView
+                android:id="@+id/tvWelcomeSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:letterSpacing="0.02"
+                android:text="@string/welcome_guest"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <!-- Account Box (Google Sign-In Account Card) -->
+            <LinearLayout
+                android:id="@+id/accountBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/btn_main"
-                android:backgroundTint="@null"
-                android:text="@string/main_play"
-                android:textColor="@color/background"
-                android:visibility="gone"
-                tools:visibility="visible" />
+                android:background="@drawable/account_box_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="12dp">
 
-            <!-- Tombol UPDATE DATA: cek & unduh aset game -->
-            <Button
-                android:id="@+id/btnUpdate"
-                style="@style/UpdateButton"
+                <!-- Avatar Circle with initial letter -->
+                <FrameLayout
+                    android:id="@+id/avatarContainer"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/avatar_circle_bg">
+
+                    <TextView
+                        android:id="@+id/tvAvatarInitial"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:fontFamily="sans-serif-black"
+                        android:text="G"
+                        android:textColor="@color/avatar_text"
+                        android:textSize="18sp" />
+                </FrameLayout>
+
+                <!-- Account Information Text -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvAccountBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.08"
+                        android:text="@string/account_connected"
+                        android:textColor="@color/status_connected_green"
+                        android:textSize="9sp" />
+
+                    <TextView
+                        android:id="@+id/tvAccountName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-black"
+                        android:maxLines="1"
+                        android:text="Gtasamp01212"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvAccountEmail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="gtasamp01212@gmail.com"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Action Button in Account Card: Logout or Login -->
+                <Button
+                    android:id="@+id/btnLogout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:background="@drawable/btn_logout_red"
+                    android:backgroundTint="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="12dp"
+                    android:paddingTop="0dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="0dp"
+                    android:stateListAnimator="@null"
+                    android:text="@string/logout"
+                    android:textColor="@color/logout_text"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnGoogleSignIn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:background="@drawable/btn_play_bg"
+                    android:backgroundTint="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="12dp"
+                    android:paddingTop="0dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="0dp"
+                    android:stateListAnimator="@null"
+                    android:text="@string/login_with_google"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Action Buttons: PLAY & SETTINGS -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/btn_update"
-                android:backgroundTint="@null"
-                android:text="@string/update_check"
-                android:textColor="@color/accent" />
+                android:layout_marginTop="14dp"
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvDataVersion"
+                <Button
+                    android:id="@+id/btnMain"
+                    style="@style/ViceSideActionButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/btn_play_bg"
+                    android:backgroundTint="@null"
+                    android:text="@string/play"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnSettings"
+                    style="@style/ViceSideActionButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/btn_settings_bg"
+                    android:backgroundTint="@null"
+                    android:text="@string/settings"
+                    android:textColor="@color/btn_settings_text" />
+            </LinearLayout>
+
+            <!-- ================= Bottom Content: SERVER INFO ================= -->
+            <LinearLayout
+                android:id="@+id/serverInfoContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:maxLines="2"
-                android:text="@string/update_data_none"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <!-- ======== AKSI CEPAT ROLEPLAY ======== -->
-        <LinearLayout
-            android:id="@+id/roleplayPanel"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/panel_bg"
-            android:elevation="6dp"
-            android:orientation="vertical"
-            android:padding="12dp"
-            app:layout_constraintBottom_toTopOf="@id/tvStatus"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
-
-            <TextView
-                android:id="@+id/tvQuickActionTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:letterSpacing="0.2"
-                android:text="@string/quick_action_title"
-                android:textColor="@color/accent"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:scrollbars="none">
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <LinearLayout
-                    android:id="@+id/roleplayActions"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
 
-                    <Button
-                        android:id="@+id/btnActionMe"
-                        style="@style/QuickActionButton"
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/btn_quick"
-                        android:backgroundTint="@null"
-                        android:text="@string/action_me"
-                        android:textColor="@color/accent" />
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.12"
+                        android:text="@string/server_label"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
 
-                    <Button
-                        android:id="@+id/btnActionDo"
-                        style="@style/QuickActionButton"
+                    <TextView
+                        android:id="@+id/tvServerAddress"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/btn_quick"
-                        android:backgroundTint="@null"
-                        android:text="@string/action_do"
-                        android:textColor="@color/accent" />
-
-                    <Button
-                        android:id="@+id/btnActionOoc"
-                        style="@style/QuickActionButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/btn_quick"
-                        android:backgroundTint="@null"
-                        android:text="@string/action_ooc"
-                        android:textColor="@color/accent" />
-
-                    <Button
-                        android:id="@+id/btnActionB"
-                        style="@style/QuickActionButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/btn_quick"
-                        android:backgroundTint="@null"
-                        android:text="@string/action_b"
-                        android:textColor="@color/accent" />
-
-                    <Button
-                        android:id="@+id/btnActionReport"
-                        style="@style/QuickActionButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/btn_quick"
-                        android:backgroundTint="@null"
-                        android:text="@string/action_report"
-                        android:textColor="@color/accent" />
-
-                    <Button
-                        android:id="@+id/btnActionStats"
-                        style="@style/QuickActionButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/btn_quick"
-                        android:backgroundTint="@null"
-                        android:text="@string/action_stats"
-                        android:textColor="@color/accent" />
-
-                    <Button
-                        android:id="@+id/btnActionInventory"
-                        style="@style/QuickActionButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/btn_quick"
-                        android:backgroundTint="@null"
-                        android:text="@string/action_inventory"
-                        android:textColor="@color/accent" />
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-black"
+                        android:text="@string/server_address"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
                 </LinearLayout>
-            </HorizontalScrollView>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="36dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.12"
+                        android:text="@string/status_label"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/tvStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-black"
+                        android:text="@string/status_ready"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ================= Bottom Content: SETTINGS PANEL ================= -->
+            <LinearLayout
+                android:id="@+id/settingsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- Setting 1: Matikan musik -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_mute_music"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/swMuteMusic"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <!-- Setting 2: Volume musik -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_volume_music"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <SeekBar
+                        android:id="@+id/sbMusicVolume"
+                        android:layout_width="140dp"
+                        android:layout_height="wrap_content"
+                        android:max="100"
+                        android:progress="70"
+                        android:progressDrawable="@drawable/seekbar_progress"
+                        android:thumb="@drawable/seekbar_thumb" />
+                </LinearLayout>
+
+                <!-- Setting 3: Kurangi animasi -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_reduce_motion"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/swReduceMotion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+
         </LinearLayout>
 
-        <!-- ======== STATUS KONEKSI ======== -->
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="36dp"
-            android:background="@drawable/panel_bg"
-            android:letterSpacing="0.05"
-            android:paddingStart="16dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="8dp"
-            android:text="@string/status_login_required"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- ===================== 1. SPLASH SCREEN + LOADING ===================== -->
+    <!-- ===================== 3. SPLASH SCREEN + LOADING ===================== -->
     <FrameLayout
         android:id="@+id/splashContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@drawable/splash_bg"
+        android:background="@color/splash_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -313,47 +411,57 @@
             android:gravity="center"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvSplashTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-black"
-                android:letterSpacing="0.12"
-                android:text="@string/splash_title"
-                android:textColor="@color/text_primary"
-                android:textSize="26sp" />
+            <!-- Logo Vice Side Roleplay -->
+            <ImageView
+                android:id="@+id/ivSplashLogo"
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:src="@drawable/logo_viceside" />
 
             <TextView
-                android:id="@+id/tvSplashSubtitle"
+                android:id="@+id/tvSplashSub"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:letterSpacing="0.4"
-                android:text="@string/splash_subtitle"
-                android:textColor="@color/accent"
-                android:textSize="12sp" />
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.05"
+                android:text="@string/brand_subtitle"
+                android:textColor="@color/purple_light"
+                android:textSize="16sp" />
 
-            <!-- Loading animation (halus, tanpa aset tambahan).
-                 Ingin memakai Lottie? Ganti ProgressBar ini dengan
-                 com.airbnb.lottie.LottieAnimationView dan taruh file JSON di res/raw/. -->
+            <!-- Horizontal Purple Loading Bar -->
             <ProgressBar
-                android:id="@+id/progressLoading"
-                style="?android:attr/progressBarStyleLarge"
-                android:layout_width="76dp"
-                android:layout_height="76dp"
-                android:layout_marginTop="34dp"
-                android:indeterminate="true"
-                android:indeterminateTint="@color/accent" />
+                android:id="@+id/progressLoadingHorizontal"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="320dp"
+                android:layout_height="8dp"
+                android:layout_marginTop="20dp"
+                android:max="100"
+                android:progress="20"
+                android:progressDrawable="@drawable/progress_bar_purple" />
 
             <TextView
-                android:id="@+id/tvSplashLoading"
+                android:id="@+id/tvSplashLoadingText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:letterSpacing="0.2"
-                android:text="@string/splash_loading"
+                android:layout_marginTop="16dp"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.12"
+                android:text="@string/splash_loading_title"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvSplashFileStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif"
+                android:text="@string/splash_checking_files"
                 android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
         </LinearLayout>
     </FrameLayout>
 
