@@ -694,6 +694,8 @@ public class MainActivity extends AppCompatActivity {
             if (intent != null && !pkg.equals(getPackageName())) {
                 intent.putExtra("server", host);
                 intent.putExtra("port", port);
+                intent.putExtra("cef_url", getString(R.string.cef_webview_url));
+                intent.putExtra("auth_url", "https://openmp-gm.vercel.app/auth/google");
                 try {
                     startActivity(intent);
                     return true;

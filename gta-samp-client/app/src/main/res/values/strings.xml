@@ -26,9 +26,9 @@
 
     <!-- Server Info -->
     <string name="server_label">SERVER</string>
-    <string name="server_address">15.235.175.76:7005</string>
-    <string name="server_host">15.235.175.76</string>
-    <string name="server_port">7005</string>
+    <string name="server_address">142.132.203.47:10125</string>
+    <string name="server_host">142.132.203.47</string>
+    <string name="server_port">10125</string>
     <string name="status_label">STATUS</string>
     <string name="status_ready">Ready</string>
     <string name="status_connecting">Menghubungkan…</string>
@@ -70,4 +70,5 @@
     <string name="game_data_missing_items">Paket yang diperlukan: %1$s</string>
     <string name="btn_update">DOWNLOAD</string>
     <string name="btn_cancel">BATAL</string>
+    <string name="cef_webview_url">https://openmp-gm.vercel.app/auth/google</string>
 </resources>
