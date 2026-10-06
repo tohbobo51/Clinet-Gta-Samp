@@ -133,6 +133,146 @@
                 android:textColor="@color/background"
                 android:visibility="gone"
                 tools:visibility="visible" />
+
+            <!-- Tombol UPDATE DATA: cek & unduh aset game -->
+            <Button
+                android:id="@+id/btnUpdate"
+                style="@style/UpdateButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/btn_update"
+                android:backgroundTint="@null"
+                android:text="@string/update_check"
+                android:textColor="@color/accent" />
+
+            <TextView
+                android:id="@+id/tvDataVersion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/update_data_none"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- ======== AKSI CEPAT ROLEPLAY ======== -->
+        <LinearLayout
+            android:id="@+id/roleplayPanel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/panel_bg"
+            android:elevation="6dp"
+            android:orientation="vertical"
+            android:padding="12dp"
+            app:layout_constraintBottom_toTopOf="@id/tvStatus"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/tvQuickActionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.2"
+                android:text="@string/quick_action_title"
+                android:textColor="@color/accent"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/roleplayActions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnActionMe"
+                        style="@style/QuickActionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/btn_quick"
+                        android:backgroundTint="@null"
+                        android:text="@string/action_me"
+                        android:textColor="@color/accent" />
+
+                    <Button
+                        android:id="@+id/btnActionDo"
+                        style="@style/QuickActionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/btn_quick"
+                        android:backgroundTint="@null"
+                        android:text="@string/action_do"
+                        android:textColor="@color/accent" />
+
+                    <Button
+                        android:id="@+id/btnActionOoc"
+                        style="@style/QuickActionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/btn_quick"
+                        android:backgroundTint="@null"
+                        android:text="@string/action_ooc"
+                        android:textColor="@color/accent" />
+
+                    <Button
+                        android:id="@+id/btnActionB"
+                        style="@style/QuickActionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/btn_quick"
+                        android:backgroundTint="@null"
+                        android:text="@string/action_b"
+                        android:textColor="@color/accent" />
+
+                    <Button
+                        android:id="@+id/btnActionReport"
+                        style="@style/QuickActionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/btn_quick"
+                        android:backgroundTint="@null"
+                        android:text="@string/action_report"
+                        android:textColor="@color/accent" />
+
+                    <Button
+                        android:id="@+id/btnActionStats"
+                        style="@style/QuickActionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/btn_quick"
+                        android:backgroundTint="@null"
+                        android:text="@string/action_stats"
+                        android:textColor="@color/accent" />
+
+                    <Button
+                        android:id="@+id/btnActionInventory"
+                        style="@style/QuickActionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/btn_quick"
+                        android:backgroundTint="@null"
+                        android:text="@string/action_inventory"
+                        android:textColor="@color/accent" />
+                </LinearLayout>
+            </HorizontalScrollView>
         </LinearLayout>
 
         <!-- ======== STATUS KONEKSI ======== -->

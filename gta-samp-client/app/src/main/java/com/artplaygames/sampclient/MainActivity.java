@@ -1,5 +1,7 @@
 package com.artplaygames.sampclient;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -11,11 +13,14 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
@@ -44,6 +49,9 @@ public class MainActivity extends AppCompatActivity {
     /** Konfigurasi server SA-MP — ganti sesuai server kamu (lihat strings.xml). */
     private static final int SERVER_PORT_DEFAULT = 7777;
 
+    /** Menyimpan teks terakhir untuk tiap tombol aksi cepat roleplay. */
+    private static final String PREF_QUICK_ACTIONS = "quick_actions";
+
     // ---- View ----
     private ConstraintLayout splashContainer;
     private ConstraintLayout mainContent;
@@ -64,6 +72,14 @@ public class MainActivity extends AppCompatActivity {
 
     // ---- Google Sign-In ----
     private GoogleSignInClient signInClient;
+
+    // ---- Update data game ----
+    private UpdateManager updateManager;
+    private Button btnUpdate;
+    private TextView tvDataVersion;
+    private AlertDialog updateProgressDialog;
+    private ProgressBar updateProgressBar;
+    private TextView updateProgressText;
 
     /**
      * Harus didaftarkan saat inisialisasi (sebelum onCreate selesai),
@@ -104,6 +120,8 @@ public class MainActivity extends AppCompatActivity {
         btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn);
         btnLogout = findViewById(R.id.btnLogout);
         btnMain = findViewById(R.id.btnMain);
+        btnUpdate = findViewById(R.id.btnUpdate);
+        tvDataVersion = findViewById(R.id.tvDataVersion);
 
         setupGoogleSignIn();
         setupServerNameFloatingAnimation();
@@ -112,6 +130,11 @@ public class MainActivity extends AppCompatActivity {
         btnGoogleSignIn.setOnClickListener(v -> launchGoogleSignIn());
         btnLogout.setOnClickListener(v -> signOut());
         btnMain.setOnClickListener(v -> connectToServer());
+        btnUpdate.setOnClickListener(v -> checkForUpdates(true));
+
+        updateManager = new UpdateManager(this, getString(R.string.update_manifest_url));
+        refreshDataVersionLabel();
+        setupQuickActions();
 
         // Mulai splash + loading animation
         splashHandler.postDelayed(splashRunnable, SPLASH_DURATION_MS);
@@ -138,6 +161,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         splashHandler.removeCallbacks(splashRunnable);
+        dismissProgressDialog();
+        if (updateManager != null) {
+            updateManager.shutdown();
+        }
         releaseBackgroundMusic();
         super.onDestroy();
     }
@@ -171,6 +198,9 @@ public class MainActivity extends AppCompatActivity {
         if (isResumed) {
             startBackgroundMusic();
         }
+
+        // Client otomatis mengecek update data game
+        checkForUpdates(false);
     }
 
     // ==================================================================
@@ -343,5 +373,206 @@ public class MainActivity extends AppCompatActivity {
 
     private float dp(float value) {
         return value * getResources().getDisplayMetrics().density;
+    }
+
+    private boolean isAlive() {
+        return !isFinishing() && !isDestroyed();
+    }
+
+    // ==================================================================
+    //  Update data game (cek + unduh aset, tersimpan di aplikasi)
+    // ==================================================================
+
+    /**
+     * Mengecek manifest update.
+     *
+     * @param userInitiated true bila dipicu tombol UPDATE DATA (selalu menampilkan hasilnya)
+     */
+    private void checkForUpdates(final boolean userInitiated) {
+        btnUpdate.setEnabled(false);
+        updateManager.check(new UpdateManager.Listener() {
+            @Override
+            public void onNoUpdate() {
+                if (!isAlive()) {
+                    return;
+                }
+                btnUpdate.setEnabled(true);
+                if (userInitiated) {
+                    Toast.makeText(MainActivity.this, R.string.update_none,
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onUpdateAvailable(UpdateManager.Manifest manifest) {
+                if (!isAlive()) {
+                    return;
+                }
+                btnUpdate.setEnabled(true);
+                showUpdateDialog(manifest);
+            }
+
+            @Override
+            public void onCheckFailed(String message) {
+                if (!isAlive()) {
+                    return;
+                }
+                btnUpdate.setEnabled(true);
+                if (userInitiated) {
+                    Toast.makeText(MainActivity.this,
+                            getString(R.string.update_check_failed, message),
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    Log.w(TAG, "Cek update otomatis gagal: " + message);
+                }
+            }
+        });
+    }
+
+    private void showUpdateDialog(final UpdateManager.Manifest manifest) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.update_title)
+                .setMessage(getString(R.string.update_available,
+                        manifest.title, manifest.files.size(), manifest.version,
+                        manifest.description))
+                .setPositiveButton(R.string.update_btn_download,
+                        (dialog, which) -> startDownload(manifest))
+                .setNegativeButton(R.string.update_btn_later, null)
+                .show();
+    }
+
+    private void startDownload(final UpdateManager.Manifest manifest) {
+        showProgressDialog();
+        updateManager.download(manifest, new UpdateManager.Listener() {
+            @Override
+            public void onProgress(int percent, String detail) {
+                if (updateProgressBar == null || updateProgressText == null) {
+                    return;
+                }
+                updateProgressBar.setProgress(percent);
+                updateProgressText.setText(detail);
+            }
+
+            @Override
+            public void onInstalled(UpdateManager.Manifest installed) {
+                if (!isAlive()) {
+                    return;
+                }
+                dismissProgressDialog();
+                refreshDataVersionLabel();
+                Toast.makeText(MainActivity.this,
+                        getString(R.string.update_installed, installed.title),
+                        Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onFailed(String message) {
+                if (!isAlive()) {
+                    return;
+                }
+                dismissProgressDialog();
+                Toast.makeText(MainActivity.this,
+                        getString(R.string.update_failed, message),
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void showProgressDialog() {
+        View view = getLayoutInflater().inflate(R.layout.dialog_update_progress, null);
+        updateProgressBar = view.findViewById(R.id.progressUpdate);
+        updateProgressText = view.findViewById(R.id.tvUpdateDetail);
+        updateProgressBar.setProgress(0);
+        updateProgressDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.update_title)
+                .setView(view)
+                .setCancelable(false)
+                .setNegativeButton(R.string.update_btn_cancel,
+                        (dialog, which) -> updateManager.cancel())
+                .show();
+    }
+
+    private void dismissProgressDialog() {
+        if (updateProgressDialog != null && updateProgressDialog.isShowing()) {
+            updateProgressDialog.dismiss();
+        }
+        updateProgressDialog = null;
+        updateProgressBar = null;
+        updateProgressText = null;
+    }
+
+    private void refreshDataVersionLabel() {
+        String installed = updateManager.getInstalledTitle();
+        tvDataVersion.setText(installed.isEmpty()
+                ? getString(R.string.update_data_none)
+                : getString(R.string.update_data_version, installed));
+    }
+
+    // ==================================================================
+    //  Aksi cepat roleplay
+    // ==================================================================
+
+    private void setupQuickActions() {
+        int[] actionIds = {
+                R.id.btnActionMe, R.id.btnActionDo, R.id.btnActionOoc, R.id.btnActionB,
+                R.id.btnActionReport, R.id.btnActionStats, R.id.btnActionInventory
+        };
+        for (int id : actionIds) {
+            View button = findViewById(id);
+            button.setOnClickListener(this::onQuickAction);
+        }
+    }
+
+    private void onQuickAction(View view) {
+        showQuickActionDialog(((Button) view).getText().toString());
+    }
+
+    /**
+     * Dialog untuk menyusun perintah roleplay lalu menyalinnya ke clipboard,
+     * sehingga tinggal ditempel di chat game.
+     */
+    private void showQuickActionDialog(final String command) {
+        View view = getLayoutInflater().inflate(R.layout.dialog_quick_action, null);
+        final EditText input = view.findViewById(R.id.inputAction);
+        input.setText(loadLastAction(command));
+        input.setSelection(input.getText().length());
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.quick_action_dialog, command))
+                .setView(view)
+                .setPositiveButton(R.string.quick_action_copy, (dialog, which) -> {
+                    String text = input.getText().toString().trim();
+                    String full = text.isEmpty() ? command : command + " " + text;
+                    copyToClipboard(full);
+                    saveLastAction(command, text);
+                    Toast.makeText(MainActivity.this,
+                            getString(R.string.quick_action_copied, full),
+                            Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.quick_action_cancel, null)
+                .show();
+    }
+
+    private void copyToClipboard(String text) {
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(ClipData.newPlainText("roleplay", text));
+        }
+    }
+
+    private String loadLastAction(String command) {
+        return getSharedPreferences(PREF_QUICK_ACTIONS, MODE_PRIVATE)
+                .getString(quickActionKey(command), "");
+    }
+
+    private void saveLastAction(String command, String text) {
+        getSharedPreferences(PREF_QUICK_ACTIONS, MODE_PRIVATE)
+                .edit()
+                .putString(quickActionKey(command), text)
+                .apply();
+    }
+
+    private static String quickActionKey(String command) {
+        return "last_" + command.replaceAll("[^A-Za-z0-9]", "");
     }
 }

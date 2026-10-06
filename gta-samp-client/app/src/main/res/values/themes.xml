@@ -32,4 +32,20 @@
         <item name="android:letterSpacing">0.35</item>
     </style>
 
+    <!-- Tombol UPDATE DATA -->
+    <style name="UpdateButton" parent="AuthButton">
+        <item name="android:minHeight">42dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- Tombol aksi cepat roleplay (scroll horizontal) -->
+    <style name="QuickActionButton" parent="AuthButton">
+        <item name="android:minHeight">38dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0.05</item>
+    </style>
+
 </resources>

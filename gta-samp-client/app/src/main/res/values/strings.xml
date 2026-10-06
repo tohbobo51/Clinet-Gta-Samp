@@ -33,4 +33,37 @@
     <string name="toast_login_cancelled">Login Google dibatalkan</string>
     <string name="toast_need_login">Silakan login dengan Google terlebih dahulu</string>
     <string name="toast_connecting">Menghubungkan ke %1$s:%2$d</string>
+
+    <!-- Update data game (fitur auto-check + unduh aset) -->
+    <string name="update_check">UPDATE DATA</string>
+    <string name="update_title">Update Data Game</string>
+    <string name="update_data_version">Data: %1$s</string>
+    <string name="update_data_none">Data: belum terpasang</string>
+    <!-- Ganti dengan URL manifest update milikmu (lihat README) -->
+    <string name="update_manifest_url">https://example.com/gta-roleplay/update.json</string>
+    <string name="update_available">%1$s\n\n%2$d file • versi %3$d\n\n%4$s</string>
+    <string name="update_none">Data game sudah versi terbaru</string>
+    <string name="update_check_failed">Gagal cek update: %1$s</string>
+    <string name="update_downloading">Mengunduh…</string>
+    <string name="update_installed">Update terpasang: %1$s</string>
+    <string name="update_failed">Update gagal: %1$s</string>
+    <string name="update_btn_download">UNDUH</string>
+    <string name="update_btn_later">NANTI</string>
+    <string name="update_btn_cancel">BATAL</string>
+    <string name="update_progress_hint">File disimpan di penyimpanan aplikasi (Android/data)</string>
+
+    <!-- Aksi cepat roleplay -->
+    <string name="quick_action_title">AKSI CEPAT ROLEPLAY</string>
+    <string name="quick_action_dialog">Aksi cepat: %1$s</string>
+    <string name="quick_action_hint">Tulis teks (opsional)…</string>
+    <string name="quick_action_copy">SALIN</string>
+    <string name="quick_action_cancel">BATAL</string>
+    <string name="quick_action_copied">Disalin: %1$s</string>
+    <string name="action_me">/me</string>
+    <string name="action_do">/do</string>
+    <string name="action_ooc">/ooc</string>
+    <string name="action_b">/b</string>
+    <string name="action_report">/report</string>
+    <string name="action_stats">/stats</string>
+    <string name="action_inventory">/inv</string>
 </resources>
