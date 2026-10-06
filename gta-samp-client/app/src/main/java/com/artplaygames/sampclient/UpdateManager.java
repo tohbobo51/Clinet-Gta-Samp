@@ -322,16 +322,15 @@ public final class UpdateManager {
                     });
 
                     overallBytesDownloaded += pkg.size;
+                    final long currentExtractedBytes = overallBytesDownloaded;
+                    final int extractPercent = (int) ((currentExtractedBytes * 100) / (totalBytesFinal > 0 ? totalBytesFinal : 1));
 
                     // Ekstraksi otomatis jika file adalah arsip ZIP
                     if (downloadFile.getName().toLowerCase().endsWith(".zip")) {
-                        post(() -> listener.onProgress((int) ((overallBytesDownloaded * 100) / (totalBytesFinal > 0 ? totalBytesFinal : 1)),
-                                "Mengekstrak " + pkg.name + "…", "Ekstraksi"));
+                        post(() -> listener.onProgress(extractPercent, "Mengekstrak " + pkg.name + "…", "Ekstraksi"));
 
                         unzip(downloadFile, gameDir, extractedFile -> {
-                            post(() -> listener.onProgress(
-                                    (int) ((overallBytesDownloaded * 100) / (totalBytesFinal > 0 ? totalBytesFinal : 1)),
-                                    "Mengekstrak: " + extractedFile, "Menyimpan ke disk"));
+                            post(() -> listener.onProgress(extractPercent, "Mengekstrak: " + extractedFile, "Menyimpan ke disk"));
                         });
 
                         // Hapus file zip sementara setelah diekstrak untuk menghemat ruang memori HP
