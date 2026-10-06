@@ -10,6 +10,8 @@ import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import java.util.List;
+import java.util.Locale;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -113,6 +115,8 @@ public class MainActivity extends AppCompatActivity {
     private AlertDialog updateProgressDialog;
     private ProgressBar updateProgressBar;
     private TextView updateProgressText;
+    private TextView tvProgressPercent;
+    private TextView tvDownloadSpeed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
         setupButtons();
         setupSettingsControls();
 
-        updateManager = new UpdateManager(this, getString(R.string.update_manifest_url));
+        updateManager = new UpdateManager(this, getString(R.string.version_manifest_url));
 
         // Tampilkan akun jika sudah ada sesi sebelumnya
         GoogleSignInAccount currentAccount = GoogleSignIn.getLastSignedInAccount(this);
@@ -416,7 +420,13 @@ public class MainActivity extends AppCompatActivity {
     //  4. Tombol Aksi Utama (PLAY, SETTINGS, dll.)
     // ==================================================================
     private void setupButtons() {
-        btnMain.setOnClickListener(v -> connectToServer());
+        btnMain.setOnClickListener(v -> {
+            if (!updateManager.isGameDataComplete()) {
+                showGameDataIncompleteDialog();
+                return;
+            }
+            connectToServer();
+        });
 
         btnSettings.setOnClickListener(v -> {
             // Toggle antara Tampilan Server Info dan Panel Pengaturan
@@ -523,8 +533,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================================================================
-    //  5. Update Data Game
+    //  5. Pengecekan Kelengkapan Data Game & Auto-Updater
     // ==================================================================
+    private void showGameDataIncompleteDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.game_data_incomplete_title)
+                .setMessage(getString(R.string.game_data_incomplete_msg, "GTA SA Cache & CRMP Assets"))
+                .setPositiveButton(R.string.btn_update, (dialog, which) -> checkForUpdates(true))
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show();
+    }
+
     private void checkForUpdates(final boolean userInitiated) {
         updateManager.check(new UpdateManager.Listener() {
             @Override
@@ -536,9 +555,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onUpdateAvailable(UpdateManager.Manifest manifest) {
+            public void onUpdateAvailable(UpdateManager.Manifest manifest, List<UpdateManager.PackageEntry> neededPackages) {
                 if (!isAlive()) return;
-                showUpdateDialog(manifest);
+                showUpdateDialog(manifest, neededPackages);
             }
 
             @Override
@@ -555,25 +574,49 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showUpdateDialog(final UpdateManager.Manifest manifest) {
+    private void showUpdateDialog(final UpdateManager.Manifest manifest, final List<UpdateManager.PackageEntry> needed) {
+        long totalBytes = 0;
+        StringBuilder sb = new StringBuilder();
+        for (UpdateManager.PackageEntry pkg : needed) {
+            totalBytes += pkg.size;
+            sb.append("• ").append(pkg.name).append(" (")
+                    .append(String.format(Locale.US, "%.1f MB", pkg.size / (1024f * 1024f)))
+                    .append(")
+");
+        }
+
+        String msg = "Pembaruan data game diperlukan (" + needed.size() + " paket):
+
+"
+                + sb.toString()
+                + "
+Total unduhan: " + String.format(Locale.US, "%.1f MB", totalBytes / (1024f * 1024f))
+                + "
+
+Klik 'UNDUH' untuk memulai pengunduhan dan ekstraksi otomatis.";
+
         new AlertDialog.Builder(this)
                 .setTitle(R.string.update_title)
-                .setMessage(getString(R.string.update_available,
-                        manifest.title, manifest.files.size(), manifest.version,
-                        manifest.description))
-                .setPositiveButton(R.string.update_btn_download, (dialog, which) -> startDownload(manifest))
+                .setMessage(msg)
+                .setPositiveButton(R.string.update_btn_download, (dialog, which) -> startDownload(manifest, needed))
                 .setNegativeButton(R.string.update_btn_later, null)
                 .show();
     }
 
-    private void startDownload(final UpdateManager.Manifest manifest) {
+    private void startDownload(final UpdateManager.Manifest manifest, final List<UpdateManager.PackageEntry> queue) {
         showProgressDialog();
-        updateManager.download(manifest, new UpdateManager.Listener() {
+        updateManager.download(manifest, queue, new UpdateManager.Listener() {
             @Override
-            public void onProgress(int percent, String detail) {
+            public void onProgress(int percent, String detail, String speedText) {
                 if (updateProgressBar == null || updateProgressText == null) return;
                 updateProgressBar.setProgress(percent);
                 updateProgressText.setText(detail);
+                if (tvProgressPercent != null) {
+                    tvProgressPercent.setText(percent + "%");
+                }
+                if (tvDownloadSpeed != null) {
+                    tvDownloadSpeed.setText(speedText);
+                }
             }
 
             @Override
@@ -581,8 +624,11 @@ public class MainActivity extends AppCompatActivity {
                 dismissProgressDialog();
                 if (!isAlive()) return;
                 Toast.makeText(MainActivity.this,
-                        getString(R.string.update_installed, manifest.title),
-                        Toast.LENGTH_SHORT).show();
+                        "Data game berhasil dipasang & siap dimainkan!",
+                        Toast.LENGTH_LONG).show();
+                if (tvStatus != null) {
+                    tvStatus.setText(R.string.status_ready);
+                }
             }
 
             @Override
@@ -601,6 +647,8 @@ public class MainActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.dialog_update_progress, null);
         updateProgressBar = view.findViewById(R.id.progressUpdate);
         updateProgressText = view.findViewById(R.id.tvUpdateDetail);
+        tvProgressPercent = view.findViewById(R.id.tvProgressPercent);
+        tvDownloadSpeed = view.findViewById(R.id.tvDownloadSpeed);
 
         updateProgressDialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.update_downloading)

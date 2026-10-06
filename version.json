@@ -1,0 +1,36 @@
+{
+  "version": 101,
+  "client_version": "1.1",
+  "min_app_version": 2,
+  "game_package": "com.viceside.mobile",
+  "storage_path": "Android/data/com.viceside.mobile/files",
+  "packages": [
+    {
+      "id": "base_cache",
+      "name": "GTA San Andreas 2.10 Core Cache",
+      "version": 1,
+      "size": 716092010,
+      "url": "https://github.com/tohbobo51/samp-game-data/releases/download/v1.0/gtasa.2.10.cache.zip",
+      "sha256": "e06ce14e8e8ebc4bcb246aa57d9c2efdbcc99b728975fe8de962e99ad7e9c218",
+      "extract_to": "",
+      "required_files": [
+        "anim/anim.img",
+        "data/gta.dat",
+        "audio/SFX/FEET"
+      ]
+    },
+    {
+      "id": "crmp_data",
+      "name": "Vice Side CRMP Multiplayer Assets v1.0",
+      "version": 1,
+      "size": 1074673867,
+      "url": "https://github.com/tohbobo51/samp-game-data/releases/download/v1.0/CRMP.zip",
+      "sha256": "4854d4176df5a8da3da17bf4aaf58e374c395ab0e1cb68be0a83ab0f6889c7ec",
+      "extract_to": "",
+      "required_files": [
+        "texdb/samp.img",
+        "SAMP/samp.ide"
+      ]
+    }
+  ]
+}
