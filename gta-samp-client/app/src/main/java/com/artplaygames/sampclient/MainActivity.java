@@ -14,6 +14,7 @@ import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -53,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREF_QUICK_ACTIONS = "quick_actions";
 
     // ---- View ----
-    private ConstraintLayout splashContainer;
+    private FrameLayout splashContainer;
     private ConstraintLayout mainContent;
     private TextView tvServerName;
     private TextView tvStatus;
