@@ -539,8 +539,8 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.game_data_incomplete_title)
                 .setMessage(getString(R.string.game_data_incomplete_msg, "GTA SA Cache & CRMP Assets"))
+                .setCancelable(false)
                 .setPositiveButton(R.string.btn_update, (dialog, which) -> checkForUpdates(true))
-                .setNegativeButton(R.string.btn_cancel, null)
                 .show();
     }
 
@@ -593,8 +593,8 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.update_title)
                 .setMessage(msg)
+                .setCancelable(false)
                 .setPositiveButton(R.string.update_btn_download, (dialog, which) -> startDownload(manifest, needed))
-                .setNegativeButton(R.string.update_btn_later, null)
                 .show();
     }
     private void startDownload(final UpdateManager.Manifest manifest, final List<UpdateManager.PackageEntry> queue) {
@@ -648,11 +648,6 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle(R.string.update_downloading)
                 .setView(view)
                 .setCancelable(false)
-                .setNegativeButton(R.string.update_btn_cancel, (dialog, which) -> {
-                    if (updateManager != null) {
-                        updateManager.cancel();
-                    }
-                })
                 .create();
         updateProgressDialog.show();
     }

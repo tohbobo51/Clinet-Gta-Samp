@@ -60,7 +60,7 @@
     <string name="update_downloading">Mengunduh…</string>
     <string name="update_installed">Update terpasang: %1$s</string>
     <string name="update_failed">Update gagal: %1$s</string>
-    <string name="update_btn_download">UNDUH</string>
+    <string name="update_btn_download">DOWNLOAD</string>
     <string name="update_btn_later">NANTI</string>
     <string name="update_btn_cancel">BATAL</string>
     <string name="update_progress_hint">File disimpan di penyimpanan aplikasi (Android/data)</string>
@@ -68,6 +68,6 @@
     <string name="game_data_incomplete_title">Data Game Belum Lengkap</string>
     <string name="game_data_incomplete_msg">Data game belum lengkap atau belum terpasang di HP. Klik UPDATE untuk mengunduh data yang diperlukan (%1$s).</string>
     <string name="game_data_missing_items">Paket yang diperlukan: %1$s</string>
-    <string name="btn_update">UPDATE</string>
+    <string name="btn_update">DOWNLOAD</string>
     <string name="btn_cancel">BATAL</string>
 </resources>
