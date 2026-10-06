@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
     /** Durasi splash screen (ms). */
     private static final long SPLASH_DURATION_MS = 2500L;
 
-    /** Konfigurasi server SA-MP â ganti sesuai server kamu (lihat strings.xml). */
+    /** Konfigurasi server SA-MP — ganti sesuai server kamu (lihat strings.xml). */
     private static final int SERVER_PORT_DEFAULT = 7777;
 
     /** Menyimpan teks terakhir untuk tiap tombol aksi cepat roleplay. */
@@ -216,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
         if (bgmPlayer == null) {
             int resId = getResources().getIdentifier("bgm", "raw", getPackageName());
             if (resId == 0) {
-                Log.w(TAG, "Musik latar tidak ditemukan â tambahkan res/raw/bgm.mp3");
+                Log.w(TAG, "Musik latar tidak ditemukan — tambahkan res/raw/bgm.mp3");
                 return;
             }
             try {
@@ -311,7 +311,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================================================================
-    //  Tombol MAIN â logika koneksi server
+    //  Tombol MAIN — logika koneksi server
     // ==================================================================
 
     private void connectToServer() {
@@ -351,7 +351,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==================================================================
-    //  4. Animasi nama server (tengah atas) â floating tak berujung
+    //  4. Animasi nama server (tengah atas) — floating tak berujung
     // ==================================================================
 
     private void setupServerNameFloatingAnimation() {
