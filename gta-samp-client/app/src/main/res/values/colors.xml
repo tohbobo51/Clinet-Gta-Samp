@@ -10,7 +10,7 @@
     <color name="accent">#F5B301</color>
     <color name="accent_start">#FFC93C</color>
     <color name="accent_end">#F5A200</color>
-    <color name="accent_stroke">#553F5B301</color>
+    <color name="accent_stroke">#553F5B30</color>
 
     <!-- Teks -->
     <color name="text_primary">#FFFFFFFF</color>
