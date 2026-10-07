@@ -21,7 +21,6 @@ public class Validator {
     private static final int PASSWORD_MIN_LENGTH = 6;
 
     public static boolean isValidNickname(String nickname, Activity activity) {
-
         if (StringUtils.isBlank(nickname)) {
             showMessage(ErrorMessage.NICKNAME_IS_EMPTY.getText(), activity);
             return false;
@@ -46,7 +45,6 @@ public class Validator {
     }
 
     public static boolean isValidEmail(String email, Activity activity) {
-
         if (StringUtils.isBlank(email)) {
             showMessage(ErrorMessage.EMAIL_IS_EMPTY.getText(), activity);
             return false;
@@ -66,7 +64,6 @@ public class Validator {
     }
 
     public static boolean isValidDonateSum(String donateSum, Activity activity) {
-
         if (StringUtils.isBlank(donateSum)) {
             showMessage(ErrorMessage.DONATE_SUM_IS_EMPTY.getText(), activity);
             return false;
@@ -81,7 +78,6 @@ public class Validator {
     }
 
     public static boolean isValidPassword(String password, Activity activity) {
-
         if (StringUtils.isBlank(password)) {
             showMessage(ErrorMessage.PASSWORD_IS_EMPTY.getText(), activity);
             return false;
@@ -100,12 +96,7 @@ public class Validator {
         return true;
     }
 
-
-        return true;
-    }
-
     public static boolean isValidCaptchaToken(String captchaToken, Activity activity) {
-
         if (StringUtils.isBlank(captchaToken)) {
             showMessage(ErrorMessage.CAPTCHA_NOT_PASSED.getText(), activity);
             return false;
