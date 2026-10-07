@@ -806,7 +806,23 @@ public class MainActivity extends AppCompatActivity {
                 "com.artplaygames.sampclient"
         };
 
-        // 1. Prioritaskan Component eksplisit ke com.russia.game.core.Samp (mesin game C++ GTA SA 2.10)
+        // 1. Coba custom action com.viceside.LAUNCH_GAME atau component eksplisit com.russia.game.core.Samp
+        try {
+            Intent actionIntent = new Intent("com.viceside.LAUNCH_GAME");
+            actionIntent.setPackage("com.russia.game");
+            actionIntent.putExtra("server", host);
+            actionIntent.putExtra("ip", host);
+            actionIntent.putExtra("port", port);
+            actionIntent.putExtra("port_str", port);
+            actionIntent.putExtra("nick", nickname);
+            actionIntent.putExtra("name", nickname);
+            actionIntent.putExtra("cef_url", getString(R.string.cef_webview_url));
+            actionIntent.putExtra("auth_url", "https://openmp-gm.vercel.app/auth/google");
+            actionIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(actionIntent);
+            return true;
+        } catch (Exception ignored) {}
+
         try {
             Intent directIntent = new Intent(Intent.ACTION_VIEW);
             directIntent.setComponent(new ComponentName("com.russia.game", "com.russia.game.core.Samp"));
@@ -832,8 +848,11 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = getPackageManager().getLaunchIntentForPackage(pkg);
                 if (intent != null) {
                     intent.putExtra("server", host);
+                    intent.putExtra("ip", host);
                     intent.putExtra("port", port);
+                    intent.putExtra("port_str", port);
                     intent.putExtra("name", nickname);
+                    intent.putExtra("nick", nickname);
                     intent.putExtra("cef_url", getString(R.string.cef_webview_url));
                     intent.putExtra("auth_url", "https://openmp-gm.vercel.app/auth/google");
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
