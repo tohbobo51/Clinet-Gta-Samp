@@ -442,7 +442,7 @@ public final class UpdateManager {
                     throw new IOException("Ekstraksi dibatalkan");
                 }
                 String entryName = ze.getName();
-                if (entryName.startsWith("files/") || entryName.startsWith("files\")) {
+                if (entryName.startsWith("files/") || entryName.startsWith("files/")) {
                     entryName = entryName.substring(6);
                 }
                 if (entryName.trim().isEmpty()) {
