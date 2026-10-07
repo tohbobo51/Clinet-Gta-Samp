@@ -684,6 +684,8 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean tryLaunchGameClient(String host, String port) {
         String[] targetPackages = new String[]{
+                "com.russia.game",
+                "com.viceside.mobile",
                 "com.rockstargames.gtasa",
                 "com.artplaygames.sampclient",
                 "ru.unisamp_mobile.game",

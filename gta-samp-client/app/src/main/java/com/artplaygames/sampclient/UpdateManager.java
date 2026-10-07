@@ -441,7 +441,15 @@ public final class UpdateManager {
                 if (cancelled.get()) {
                     throw new IOException("Ekstraksi dibatalkan");
                 }
-                File target = resolveSafe(targetDir, ze.getName());
+                String entryName = ze.getName();
+                if (entryName.startsWith("files/") || entryName.startsWith("files\")) {
+                    entryName = entryName.substring(6);
+                }
+                if (entryName.trim().isEmpty()) {
+                    zis.closeEntry();
+                    continue;
+                }
+                File target = resolveSafe(targetDir, entryName);
                 if (ze.isDirectory()) {
                     target.mkdirs();
                 } else {
