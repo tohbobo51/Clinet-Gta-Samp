@@ -28,7 +28,6 @@ import com.russia.data.vehicles.Vehicles
 import com.russia.launcher.storage.NativeStorage
 import com.russia.launcher.storage.Storage
 import com.russia.launcher.ui.dialogs.ReCaptchaDialog
-import com.russia.launcher.utils.Validator
 import java.util.Collections
 import kotlin.math.ceil
 

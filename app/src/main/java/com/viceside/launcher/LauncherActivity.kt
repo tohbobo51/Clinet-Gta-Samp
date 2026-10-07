@@ -289,9 +289,9 @@ class LauncherActivity : AppCompatActivity() {
         btnMain.setOnClickListener {
             if (!dataUpdater.isGameDataComplete()) {
                 showDownloadScreen()
-                return
+            } else {
+                launchGameClient()
             }
-            launchGameClient()
         }
     }
 
