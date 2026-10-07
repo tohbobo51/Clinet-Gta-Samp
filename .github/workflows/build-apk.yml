@@ -26,13 +26,10 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android NDK & CMake
-        uses: android-actions/setup-android@v3
-
       - name: Install Android NDK 28.0.13004108 & CMake
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "ndk;28.0.13004108" "cmake;3.22.1"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.0.13004108" "cmake;3.22.1" || $ANDROID_HOME/tools/bin/sdkmanager "ndk;28.0.13004108" "cmake;3.22.1"
 
       - name: Set up Gradle Cache
         uses: gradle/actions/setup-gradle@v4
