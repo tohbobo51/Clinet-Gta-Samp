@@ -1,0 +1,118 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.russia.game'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.viceside.mobile"
+        minSdkVersion 26
+        targetSdkVersion 34
+        versionName "1.1"
+        versionCode 2
+        multiDexEnabled = true
+
+        lintOptions {
+            checkReleaseBuilds false
+            abortOnError false
+        }
+
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
+
+        externalNativeBuild {
+            cmake {
+                cppFlags '-fvisibility=hidden'
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            excludes += ['META-INF/*']
+            pickFirsts += ['**/*.so']
+        }
+        resources {
+            excludes += ['META-INF/*']
+        }
+    }
+
+    ndkVersion '28.0.13004108'
+
+    androidResources {
+        noCompress 'mp3'
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            debuggable true
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    viewBinding {
+        enabled = true
+    }
+
+    buildFeatures {
+        prefab true
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'com.google.android.material:material:1.12.0'
+
+    // Native Hooks & Shadowhook
+    implementation 'com.bytedance.android:shadowhook:1.0.10'
+
+    // UI Libraries used by Game GUI
+    implementation 'com.airbnb.android:lottie:6.4.0'
+    implementation 'com.github.rommansabbir:AnimationX:2.0'
+    implementation 'nl.dionsegijn:konfetti-xml:2.0.2'
+    implementation 'org.ini4j:ini4j:0.5.4'
+    implementation 'com.github.skydoves:progressview:1.1.3'
+    implementation 'com.github.Triggertrap:SeekArc:v1.1'
+    implementation 'com.akexorcist:round-corner-progress-bar:2.1.2'
+    implementation 'com.makeramen:roundedimageview:2.3.0'
+    implementation 'com.github.bumptech.glide:glide:4.15.1'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.13.0'
+    implementation 'com.github.valkriaine:Bouncy:2.3'
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
+    implementation 'org.apache.commons:commons-lang3:3.0'
+    implementation 'com.github.skydoves:colorpickerview:2.3.0'
+
+    // Google Sign-In for Vice Side launcher
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
+
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+}
