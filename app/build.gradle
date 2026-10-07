@@ -91,6 +91,9 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'com.google.android.material:material:1.12.0'
 
+    // JSON serialization
+    implementation 'com.google.code.gson:gson:2.10.1'
+
     // Native Hooks & Shadowhook
     implementation 'com.bytedance.android:shadowhook:1.0.10'
 

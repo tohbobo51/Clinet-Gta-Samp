@@ -27,7 +27,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import com.viceside.core.CrashReporter
 import com.russia.game.R
 import com.russia.game.gui.hud.HudManager
-import com.russia.launcher.async.task.CacheChecker.isGameCacheValid
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest

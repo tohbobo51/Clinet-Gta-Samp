@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 
 import com.bytedance.shadowhook.ShadowHook;
-import com.russia.launcher.utils.MainUtils;
 import com.wardrumstudios.utils.WarMedia;
 
 public class GTASA extends WarMedia {

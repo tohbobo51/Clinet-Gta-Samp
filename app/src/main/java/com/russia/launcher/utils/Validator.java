@@ -10,7 +10,6 @@ import android.widget.Toast;
 
 import com.russia.game.R;
 import com.russia.launcher.domain.messages.ErrorMessage;
-import com.russia.launcher.async.dto.response.Servers;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -101,12 +100,6 @@ public class Validator {
         return true;
     }
 
-    public static boolean isValidSelectedServer(Servers selectedServer, Activity activity) {
-
-        if (selectedServer == null) {
-            showMessage(ErrorMessage.SERVER_NOT_SELECTED.getText(), activity);
-            return false;
-        }
 
         return true;
     }

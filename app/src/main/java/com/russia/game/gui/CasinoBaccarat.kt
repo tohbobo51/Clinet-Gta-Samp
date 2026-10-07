@@ -298,7 +298,6 @@ class CasinoBaccarat : NativeGui<CasinoBcBinding>(CasinoBcBinding::class) {
 
 
     private fun updateYellowCard(cardNum: Int) {
-        if (!bOffSound)
 
         val rnd = Random().nextInt(4)
         val textTop = binding.yellowCard.getChildAt(0) as TextView
