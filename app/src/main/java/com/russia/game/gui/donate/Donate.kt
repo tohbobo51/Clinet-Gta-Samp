@@ -25,9 +25,7 @@ import com.russia.data.TreasuresList
 import com.russia.data.acs.Accessories
 import com.russia.data.skins.Skins
 import com.russia.data.vehicles.Vehicles
-import com.russia.launcher.storage.NativeStorage
 import com.russia.launcher.storage.Storage
-import com.russia.launcher.ui.dialogs.ReCaptchaDialog
 import java.util.Collections
 import kotlin.math.ceil
 
