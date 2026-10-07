@@ -808,10 +808,13 @@ public class MainActivity extends AppCompatActivity {
 
         // 1. Prioritaskan Component eksplisit ke com.russia.game.core.Samp (mesin game C++ GTA SA 2.10)
         try {
-            Intent directIntent = new Intent();
+            Intent directIntent = new Intent(Intent.ACTION_VIEW);
             directIntent.setComponent(new ComponentName("com.russia.game", "com.russia.game.core.Samp"));
             directIntent.putExtra("server", host);
+            directIntent.putExtra("ip", host);
             directIntent.putExtra("port", port);
+            directIntent.putExtra("port_str", port);
+            directIntent.putExtra("nick", nickname);
             directIntent.putExtra("name", nickname);
             directIntent.putExtra("cef_url", getString(R.string.cef_webview_url));
             directIntent.putExtra("auth_url", "https://openmp-gm.vercel.app/auth/google");
