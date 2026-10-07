@@ -1,18 +1,20 @@
 package com.artplaygames.sampclient;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -22,12 +24,11 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -36,17 +37,21 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.tasks.Task;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 
 /**
  * Vice Side Roleplay - Mobile Client Launcher (Landscape Mode)
  *
- * Alur Real-time:
- *   1. Splash Screen: Memeriksa kelengkapan file game nyata di Android/data/com.viceside.mobile/files/.
- *   2. Jika belum lengkap: Langsung beralih ke UI Unduh Game Data (Screenshot 2) tanpa dialog putih popup.
- *      Hanya ada SATU tombol: "DOWNLOAD SEKARANG" (tanpa tombol batal).
- *   3. Jika sudah lengkap: Membuka layar utama (Screenshot 1) dengan status Ready.
+ * Alur Kerja:
+ *   1. Splash Screen: Memeriksa kelengkapan file game secara case-insensitive.
+ *   2. Unduh Game Data: Menghilangkan download loop berulang, file otomatis di-unzip ke data folder.
+ *   3. Login Google: Menghubungkan akun Google dan menyelaraskan nickname SA-MP roleplay.
+ *   4. Tombol PLAY: Menulis konfigurasi SAMP/settings.ini (IP, Port, Nickname) dan meluncurkan
+ *      game SA-MP APK (com.russia.game / com.rockstargames.gtasa / com.viceside.mobile).
+ *   5. Jika APK Game belum terpasang di HP, launcher menyediakan tombol 1-klik untuk mengunduh APK.
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -55,14 +60,16 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_MUTE_MUSIC = "mute_music";
     private static final String KEY_MUSIC_VOLUME = "music_volume";
     private static final String KEY_REDUCE_MOTION = "reduce_motion";
+    private static final String KEY_PLAYER_NICKNAME = "player_nickname";
 
     // ---- View Splash ----
     private FrameLayout splashContainer;
     private ProgressBar progressSplash;
     private TextView tvSplashFileStatus;
 
-    // ---- View Konten Utama (Screenshot 1) ----
+    // ---- View Konten Utama ----
     private ConstraintLayout mainContent;
+    private View accountBox;
     private TextView tvWelcomeSubtitle;
     private TextView tvAvatarInitial;
     private TextView tvAccountBadge;
@@ -82,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar sbMusicVolume;
     private SwitchCompat swReduceMotion;
 
-    // ---- View Download Overlay (Screenshot 2) ----
+    // ---- View Download Overlay ----
     private ConstraintLayout downloadContainer;
     private TextView tvCardPercent;
     private TextView tvCardFilesCount;
@@ -97,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
 
     private UpdateManager.Manifest cachedManifest;
     private List<UpdateManager.PackageEntry> cachedNeededPackages;
+    private UpdateManager updateManager;
 
     // ---- Lifecycle & Media ----
     private final Handler splashHandler = new Handler(Looper.getMainLooper());
@@ -120,13 +128,10 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(this, R.string.toast_login_failed, Toast.LENGTH_SHORT).show();
                     }
                 } catch (Exception e) {
-                    Log.w(TAG, "Google Sign-In gagal", e);
+                    Log.w(TAG, "Login Google gagal/batal: " + e.getMessage());
                     Toast.makeText(this, R.string.toast_login_cancelled, Toast.LENGTH_SHORT).show();
                 }
             });
-
-    // ---- Updater Data Game ----
-    private UpdateManager updateManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 2. Set edge-to-edge penuh tanpa padding sistem
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
         setContentView(R.layout.activity_main);
 
         initViews();
@@ -157,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
         GoogleSignInAccount currentAccount = GoogleSignIn.getLastSignedInAccount(this);
         applyAuthUi(currentAccount);
 
-        // Memulai pemindaian file nyata di splash screen
+        // Memulai pemindaian file game di splash screen
         startSplashProgressAnimation();
     }
 
@@ -167,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
         tvSplashFileStatus = findViewById(R.id.tvSplashFileStatus);
 
         mainContent = findViewById(R.id.mainContent);
+        accountBox = findViewById(R.id.accountBox);
         tvWelcomeSubtitle = findViewById(R.id.tvWelcomeSubtitle);
         tvAvatarInitial = findViewById(R.id.tvAvatarInitial);
         tvAccountBadge = findViewById(R.id.tvAccountBadge);
@@ -174,9 +181,9 @@ public class MainActivity extends AppCompatActivity {
         tvAccountEmail = findViewById(R.id.tvAccountEmail);
         btnLogout = findViewById(R.id.btnLogout);
         btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn);
-
         btnMain = findViewById(R.id.btnMain);
         btnSettings = findViewById(R.id.btnSettings);
+
         serverInfoContainer = findViewById(R.id.serverInfoContainer);
         settingsContainer = findViewById(R.id.settingsContainer);
         tvStatus = findViewById(R.id.tvStatus);
@@ -185,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
         sbMusicVolume = findViewById(R.id.sbMusicVolume);
         swReduceMotion = findViewById(R.id.swReduceMotion);
 
-        // Download Overlay Views (Screenshot 2)
+        // Download Overlay Views
         downloadContainer = findViewById(R.id.downloadContainer);
         tvCardPercent = findViewById(R.id.tvCardPercent);
         tvCardFilesCount = findViewById(R.id.tvCardFilesCount);
@@ -203,8 +210,6 @@ public class MainActivity extends AppCompatActivity {
                 if (cachedManifest != null && cachedNeededPackages != null && !cachedNeededPackages.isEmpty()) {
                     startCardDownload(cachedManifest, cachedNeededPackages);
                 } else {
-                    btnCardStartDownload.setEnabled(false);
-                    btnCardStartDownload.setText("MEMERIKSA PAKET…");
                     updateManager.check(new UpdateManager.Listener() {
                         @Override
                         public void onUpdateAvailable(UpdateManager.Manifest manifest, List<UpdateManager.PackageEntry> neededPackages) {
@@ -212,15 +217,15 @@ public class MainActivity extends AppCompatActivity {
                             cachedNeededPackages = neededPackages;
                             startCardDownload(manifest, neededPackages);
                         }
+
                         @Override
                         public void onNoUpdate() {
                             showMainContentScreen();
                         }
+
                         @Override
                         public void onCheckFailed(String message) {
-                            btnCardStartDownload.setEnabled(true);
-                            btnCardStartDownload.setText("COBA LAGI");
-                            Toast.makeText(MainActivity.this, "Gagal koneksi: " + message, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, getString(R.string.update_check_failed, message), Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
@@ -229,31 +234,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadSettingsPreferences() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE);
-        isMuted = prefs.getBoolean(KEY_MUTE_MUSIC, false);
-        int volInt = prefs.getInt(KEY_MUSIC_VOLUME, 70);
-        currentVolume = volInt / 100f;
-        boolean reduceMotion = prefs.getBoolean(KEY_REDUCE_MOTION, false);
+        SharedPreferences sp = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE);
+        isMuted = sp.getBoolean(KEY_MUTE_MUSIC, false);
+        int vol = sp.getInt(KEY_MUSIC_VOLUME, 70);
+        currentVolume = vol / 100f;
+        boolean reduceMotion = sp.getBoolean(KEY_REDUCE_MOTION, false);
 
-        if (swMuteMusic != null) {
-            swMuteMusic.setChecked(isMuted);
-        }
-        if (sbMusicVolume != null) {
-            sbMusicVolume.setProgress(volInt);
-        }
-        if (swReduceMotion != null) {
-            swReduceMotion.setChecked(reduceMotion);
-        }
+        if (swMuteMusic != null) swMuteMusic.setChecked(isMuted);
+        if (sbMusicVolume != null) sbMusicVolume.setProgress(vol);
+        if (swReduceMotion != null) swReduceMotion.setChecked(reduceMotion);
     }
 
     private void setupImmersiveMode() {
-        WindowInsetsControllerCompat insetsController =
-                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-        if (insetsController != null) {
-            insetsController.hide(WindowInsetsCompat.Type.systemBars());
-            insetsController.setSystemBarsBehavior(
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-        }
         View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -261,7 +253,8 @@ public class MainActivity extends AppCompatActivity {
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN);
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+        );
     }
 
     @Override
@@ -276,7 +269,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         isResumed = true;
-        setupImmersiveMode();
         if (loadingFinished && !isMuted) {
             startBackgroundMusic();
         }
@@ -284,45 +276,43 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        super.onPause();
         isResumed = false;
         pauseBackgroundMusic();
-        super.onPause();
     }
 
     @Override
     protected void onDestroy() {
+        super.onDestroy();
+        releaseBackgroundMusic();
         if (updateManager != null) {
             updateManager.shutdown();
         }
-        releaseBackgroundMusic();
-        super.onDestroy();
     }
 
     // ==================================================================
-    //  1. Splash Screen & Pemeriksaan File Nyata (Real-time File Scanning)
+    //  1. Splash & Scanning File Fisik
     // ==================================================================
+
     private void startSplashProgressAnimation() {
         if (progressSplash == null) return;
-        progressSplash.setProgress(5);
+        progressSplash.setProgress(10);
         if (tvSplashFileStatus != null) {
             tvSplashFileStatus.setText("Memeriksa data file game…");
         }
 
-        // Jalankan pengecekan file fisik di latar belakang
         new Thread(() -> {
             File gameDir = updateManager.getGameDataDir();
             final int totalTargetFiles = 7152;
             int scannedFiles = 0;
-
             if (gameDir != null && gameDir.exists()) {
                 scannedFiles = countFilesRecursive(gameDir, totalTargetFiles);
             }
-
             final int finalScanned = scannedFiles;
             final boolean isComplete = updateManager.isGameDataComplete();
 
-            // Animasi transisi progres berbasis scan nyata
-            int targetProgress = isComplete ? 100 : Math.min(85, Math.max(15, (finalScanned * 100) / totalTargetFiles));
+            int targetProgress = isComplete ? 100 : Math.min(85, Math.max(25, (finalScanned * 100) / totalTargetFiles));
+
             for (int p = 15; p <= targetProgress; p += 15) {
                 final int currentP = p;
                 runOnUiThread(() -> {
@@ -330,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
                         progressSplash.setProgress(currentP);
                     }
                 });
-                try { Thread.sleep(60); } catch (InterruptedException ignored) {}
+                try { Thread.sleep(50); } catch (InterruptedException ignored) {}
             }
 
             runOnUiThread(() -> {
@@ -340,12 +330,12 @@ public class MainActivity extends AppCompatActivity {
                     if (tvSplashFileStatus != null) {
                         tvSplashFileStatus.setText(R.string.splash_files_done);
                     }
-                    splashHandler.postDelayed(() -> finishSplash(true), 400);
+                    splashHandler.postDelayed(() -> finishSplash(true), 350);
                 } else {
                     if (tvSplashFileStatus != null) {
-                        tvSplashFileStatus.setText("Memeriksa file (" + finalScanned + " / " + totalTargetFiles + "): Belum lengkap");
+                        tvSplashFileStatus.setText("Memeriksa file (" + finalScanned + " / " + totalTargetFiles + "): Siap unduh");
                     }
-                    splashHandler.postDelayed(() -> finishSplash(false), 500);
+                    splashHandler.postDelayed(() -> finishSplash(false), 450);
                 }
             });
         }).start();
@@ -370,7 +360,6 @@ public class MainActivity extends AppCompatActivity {
     private void finishSplash(boolean isComplete) {
         if (!isAlive()) return;
         loadingFinished = true;
-
         if (splashContainer != null) {
             splashContainer.animate()
                     .alpha(0f)
@@ -378,15 +367,12 @@ public class MainActivity extends AppCompatActivity {
                     .withEndAction(() -> splashContainer.setVisibility(View.GONE))
                     .start();
         }
-
         if (isResumed && !isMuted) {
             startBackgroundMusic();
         }
-
         if (isComplete) {
             showMainContentScreen();
         } else {
-            // Langsung tampilkan UI Unduh Screenshot 2 tanpa dialog popup putih!
             showDownloadScreen();
         }
     }
@@ -410,13 +396,11 @@ public class MainActivity extends AppCompatActivity {
             downloadContainer.setVisibility(View.VISIBLE);
             downloadContainer.animate().alpha(1f).setDuration(450).start();
         }
-
         if (btnCardStartDownload != null) {
             btnCardStartDownload.setVisibility(View.VISIBLE);
             btnCardStartDownload.setText("DOWNLOAD SEKARANG");
         }
 
-        // Cek detail paket dari version.json
         updateManager.check(new UpdateManager.Listener() {
             @Override
             public void onUpdateAvailable(UpdateManager.Manifest manifest, List<UpdateManager.PackageEntry> neededPackages) {
@@ -452,7 +436,6 @@ public class MainActivity extends AppCompatActivity {
         if (btnCardStartDownload != null) {
             btnCardStartDownload.setVisibility(View.GONE);
         }
-
         updateManager.download(manifest, queue, new UpdateManager.Listener() {
             @Override
             public void onProgress(int percent, String detail, String speedText) {
@@ -510,6 +493,7 @@ public class MainActivity extends AppCompatActivity {
     // ==================================================================
     //  2. Audio / Background Music
     // ==================================================================
+
     private void startBackgroundMusic() {
         if (isMuted) return;
         if (bgmPlayer == null) {
@@ -550,6 +534,7 @@ public class MainActivity extends AppCompatActivity {
     // ==================================================================
     //  3. Google Sign-In & Tampilan Akun
     // ==================================================================
+
     private void setupGoogleSignIn() {
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
@@ -557,10 +542,34 @@ public class MainActivity extends AppCompatActivity {
         signInClient = GoogleSignIn.getClient(this, gso);
     }
 
+    public static String sanitizeNickname(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "ViceSide_Player";
+        String s = raw.trim().replace(" ", "_");
+        if (s.contains("@")) {
+            s = s.substring(0, s.indexOf("@"));
+        }
+        s = s.replaceAll("[^a-zA-Z0-9_]", "");
+        if (s.length() > 20) s = s.substring(0, 20);
+        if (s.length() < 3) s = "Player_" + s;
+        return s;
+    }
+
     private void onSignInSuccess(GoogleSignInAccount account) {
         applyAuthUi(account);
-        String name = account.getDisplayName() != null ? account.getDisplayName() : "Pemain";
-        Toast.makeText(this, getString(R.string.toast_signed_in, name), Toast.LENGTH_SHORT).show();
+        String name = account.getDisplayName() != null ? account.getDisplayName() : account.getEmail();
+        String cleanNick = sanitizeNickname(name);
+
+        getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE)
+                .edit()
+                .putString(KEY_PLAYER_NICKNAME, cleanNick)
+                .apply();
+
+        writeSampSettings(updateManager.getGameDataDir(),
+                getString(R.string.server_host),
+                getString(R.string.server_port),
+                cleanNick);
+
+        Toast.makeText(this, getString(R.string.toast_signed_in, cleanNick), Toast.LENGTH_SHORT).show();
     }
 
     private void signOut() {
@@ -576,22 +585,28 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyAuthUi(GoogleSignInAccount account) {
         boolean signedIn = (account != null);
+        SharedPreferences sp = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE);
+        String savedNick = sp.getString(KEY_PLAYER_NICKNAME, "");
+
         if (signedIn) {
             String name = account.getDisplayName() != null ? account.getDisplayName() : "Pemain";
             String email = account.getEmail() != null ? account.getEmail() : "-";
-            tvAccountName.setText(name);
+            String nick = savedNick.isEmpty() ? sanitizeNickname(name) : savedNick;
+
+            tvAccountName.setText(nick);
             tvAccountEmail.setText(email);
             tvAccountBadge.setText(R.string.account_connected);
             tvAccountBadge.setTextColor(getColor(R.color.status_connected_green));
-            tvWelcomeSubtitle.setText(getString(R.string.welcome_back, name));
-            String initial = name.isEmpty() ? "P" : name.substring(0, 1).toUpperCase(Locale.ROOT);
+            tvWelcomeSubtitle.setText(getString(R.string.welcome_back, nick));
+            String initial = nick.isEmpty() ? "P" : nick.substring(0, 1).toUpperCase(Locale.ROOT);
             tvAvatarInitial.setText(initial);
             btnLogout.setVisibility(View.VISIBLE);
             btnGoogleSignIn.setVisibility(View.GONE);
         } else {
+            String nick = savedNick.isEmpty() ? getString(R.string.guest_user) : savedNick;
             tvAccountBadge.setText(R.string.account_disconnected);
             tvAccountBadge.setTextColor(getColor(R.color.text_muted));
-            tvAccountName.setText(R.string.guest_user);
+            tvAccountName.setText(nick);
             tvAccountEmail.setText(R.string.guest_email);
             tvWelcomeSubtitle.setText(R.string.welcome_guest);
             tvAvatarInitial.setText("?");
@@ -600,9 +615,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void showChangeNicknameDialog() {
+        SharedPreferences sp = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE);
+        String current = sp.getString(KEY_PLAYER_NICKNAME, "ViceSide_Player");
+
+        final EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(current);
+        input.setSelection(input.getText().length());
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_change_nickname_title)
+                .setMessage("Format SA-MP: Huruf, angka, garis bawah (cth: Nama_Karakter)")
+                .setView(input)
+                .setPositiveButton("SIMPAN", (d, which) -> {
+                    String clean = sanitizeNickname(input.getText().toString());
+                    sp.edit().putString(KEY_PLAYER_NICKNAME, clean).apply();
+                    applyAuthUi(GoogleSignIn.getLastSignedInAccount(this));
+                    writeSampSettings(updateManager.getGameDataDir(),
+                            getString(R.string.server_host),
+                            getString(R.string.server_port),
+                            clean);
+                    Toast.makeText(this, "Nickname diubah: " + clean, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("BATAL", null)
+                .show();
+    }
+
     // ==================================================================
-    //  4. Tombol Aksi Utama (PLAY, SETTINGS, dll.)
+    //  4. Tombol Aksi Utama (PLAY, SETTINGS, & Koneksi Server)
     // ==================================================================
+
     private void setupButtons() {
         btnMain.setOnClickListener(v -> {
             if (!updateManager.isGameDataComplete()) {
@@ -611,6 +654,10 @@ public class MainActivity extends AppCompatActivity {
             }
             connectToServer();
         });
+
+        if (accountBox != null) {
+            accountBox.setOnClickListener(v -> showChangeNicknameDialog());
+        }
 
         btnSettings.setOnClickListener(v -> {
             if (settingsContainer.getVisibility() == View.VISIBLE) {
@@ -652,8 +699,10 @@ public class MainActivity extends AppCompatActivity {
                         .putInt(KEY_MUSIC_VOLUME, progress)
                         .apply();
             }
+
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {}
+
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
@@ -666,47 +715,146 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void connectToServer() {
-        String host = getString(R.string.server_host);
-        String port = getString(R.string.server_port);
-        tvStatus.setText(R.string.status_connecting);
-        Toast.makeText(this, getString(R.string.toast_connecting, host, port), Toast.LENGTH_SHORT).show();
+    /**
+     * Menulis konfigurasi SAMP/settings.ini agar mesin C++ SA-MP dapat membaca IP, Port, dan Nickname.
+     */
+    public static void writeSampSettings(File gameDir, String host, String port, String nickname) {
+        if (gameDir == null) return;
+        try {
+            File sampDir = new File(gameDir, "SAMP");
+            if (!sampDir.exists()) sampDir.mkdirs();
+            File settingsFile = new File(sampDir, "settings.ini");
 
-        boolean launched = tryLaunchGameClient(host, port);
-        if (!launched) {
-            splashHandler.postDelayed(() -> {
-                if (isAlive()) {
-                    tvStatus.setText(R.string.status_ready);
+            String safeName = (nickname != null && !nickname.trim().isEmpty())
+                    ? sanitizeNickname(nickname) : "ViceSide_Player";
+
+            String content = "[client]\n"
+                    + "ip=" + host + "\n"
+                    + "port=" + port + "\n"
+                    + "name=" + safeName + "\n"
+                    + "password=\n"
+                    + "autologin=0\n"
+                    + "server=0\n"
+                    + "debug=0\n"
+                    + "[gui]\n"
+                    + "Font=visby-round-cf-extra-bold.ttf\n"
+                    + "fps=60\n";
+
+            try (FileOutputStream fos = new FileOutputStream(settingsFile)) {
+                fos.write(content.getBytes(StandardCharsets.UTF_8));
+                fos.flush();
+            }
+
+            // Upayakan sinkronisasi ke folder game com.russia.game jika dapat diakses
+            try {
+                File russiaDir = new File("/storage/emulated/0/Android/data/com.russia.game/files/SAMP");
+                if (russiaDir.exists() || russiaDir.mkdirs()) {
+                    File rSettings = new File(russiaDir, "settings.ini");
+                    try (FileOutputStream rfos = new FileOutputStream(rSettings)) {
+                        rfos.write(content.getBytes(StandardCharsets.UTF_8));
+                        rfos.flush();
+                    }
                 }
-            }, 1200);
+            } catch (Throwable ignored) {}
+
+            // Sync fallback ke /sdcard/SAMP/settings.ini
+            try {
+                File sdcardSamp = new File(Environment.getExternalStorageDirectory(), "SAMP");
+                if (sdcardSamp.exists() || sdcardSamp.mkdirs()) {
+                    File sdSettings = new File(sdcardSamp, "settings.ini");
+                    try (FileOutputStream sdfos = new FileOutputStream(sdSettings)) {
+                        sdfos.write(content.getBytes(StandardCharsets.UTF_8));
+                        sdfos.flush();
+                    }
+                }
+            } catch (Throwable ignored) {}
+
+        } catch (Exception e) {
+            Log.w(TAG, "Gagal menulis SAMP/settings.ini: " + e.getMessage());
         }
     }
 
-    private boolean tryLaunchGameClient(String host, String port) {
+    private void connectToServer() {
+        String host = getString(R.string.server_host);
+        String port = getString(R.string.server_port);
+
+        SharedPreferences sp = getSharedPreferences(PREFS_SETTINGS, MODE_PRIVATE);
+        String nickname = sp.getString(KEY_PLAYER_NICKNAME, "ViceSide_Player");
+
+        tvStatus.setText(R.string.status_connecting);
+        Toast.makeText(this, getString(R.string.toast_connecting, host, port), Toast.LENGTH_SHORT).show();
+
+        // 1. Tulis settings.ini sebelum meluncurkan game
+        writeSampSettings(updateManager.getGameDataDir(), host, port, nickname);
+
+        // 2. Luncurkan game
+        boolean launched = tryLaunchGameClient(host, port, nickname);
+        if (!launched) {
+            tvStatus.setText(R.string.status_ready);
+            showGameNotInstalledDialog();
+        } else {
+            tvStatus.setText(R.string.status_connected);
+        }
+    }
+
+    private boolean tryLaunchGameClient(String host, String port, String nickname) {
         String[] targetPackages = new String[]{
                 "com.russia.game",
-                "com.viceside.mobile",
                 "com.rockstargames.gtasa",
-                "com.artplaygames.sampclient",
                 "ru.unisamp_mobile.game",
-                "com.samp.mobile"
+                "com.samp.mobile",
+                "com.artplaygames.sampclient"
         };
+
+        // 1. Prioritaskan Component eksplisit ke com.russia.game.core.Samp (mesin game C++ GTA SA 2.10)
+        try {
+            Intent directIntent = new Intent();
+            directIntent.setComponent(new ComponentName("com.russia.game", "com.russia.game.core.Samp"));
+            directIntent.putExtra("server", host);
+            directIntent.putExtra("port", port);
+            directIntent.putExtra("name", nickname);
+            directIntent.putExtra("cef_url", getString(R.string.cef_webview_url));
+            directIntent.putExtra("auth_url", "https://openmp-gm.vercel.app/auth/google");
+            directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(directIntent);
+            return true;
+        } catch (Exception ignored) {
+            // Lanjut ke metode launch intent jika component eksplisit belum tersedia
+        }
+
+        // 2. Coba getLaunchIntentForPackage pada paket game yang terpasang
         for (String pkg : targetPackages) {
-            Intent intent = getPackageManager().getLaunchIntentForPackage(pkg);
-            if (intent != null && !pkg.equals(getPackageName())) {
-                intent.putExtra("server", host);
-                intent.putExtra("port", port);
-                intent.putExtra("cef_url", getString(R.string.cef_webview_url));
-                intent.putExtra("auth_url", "https://openmp-gm.vercel.app/auth/google");
-                try {
+            if (pkg.equals(getPackageName())) continue;
+            try {
+                Intent intent = getPackageManager().getLaunchIntentForPackage(pkg);
+                if (intent != null) {
+                    intent.putExtra("server", host);
+                    intent.putExtra("port", port);
+                    intent.putExtra("name", nickname);
+                    intent.putExtra("cef_url", getString(R.string.cef_webview_url));
+                    intent.putExtra("auth_url", "https://openmp-gm.vercel.app/auth/google");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                     return true;
-                } catch (Exception e) {
-                    Log.w(TAG, "Gagal meluncurkan game pkg: " + pkg, e);
                 }
+            } catch (Exception e) {
+                Log.w(TAG, "Gagal meluncurkan game pkg: " + pkg, e);
             }
         }
         return false;
+    }
+
+    private void showGameNotInstalledDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.game_not_installed_title)
+                .setMessage(R.string.game_not_installed_msg)
+                .setPositiveButton(R.string.btn_download_apk, (dialog, which) -> {
+                    String apkUrl = getString(R.string.game_apk_download_url);
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl));
+                    startActivity(browserIntent);
+                })
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show();
     }
 
     private boolean isAlive() {

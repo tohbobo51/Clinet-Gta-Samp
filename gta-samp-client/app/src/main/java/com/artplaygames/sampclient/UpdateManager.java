@@ -20,7 +20,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -33,11 +33,12 @@ import java.util.zip.ZipInputStream;
 /**
  * Modul Downloader & Auto-Updater SAMP/CRMP (Differential / Segmen Update).
  *
- * Mendukung:
- *  1. Pengecekan integritas file game lokal (apakah file inti game sudah lengkap di penyimpanan).
- *  2. Pengecekan version.json remote dengan segmen/paket terpisah (base, patch, crmp).
- *  3. Differential update: Hanya mengunduh paket/file yang belum ada atau versinya berubah.
- *  4. UI Progress real-time: Persentase, kecepatan (MB/s), ukuran (MB/MB), dan ekstraksi unzip.
+ * Fitur:
+ *  1. Pengecekan integritas file game lokal dengan pencarian case-insensitive.
+ *  2. Pengecekan version.json remote dengan segmen/paket terpisah (base_cache, crmp_data).
+ *  3. Mencegah download loop berulang setelah unduhan selesai.
+ *  4. Penulisan otomatis SAMP/settings.ini agar siap dimainkan.
+ *  5. Pelaporan speed (MB/s), progres, dan unzipping real-time.
  */
 public final class UpdateManager {
 
@@ -45,6 +46,7 @@ public final class UpdateManager {
     private static final String PREFS = "samp_update_prefs";
     private static final String KEY_PKG_VER_PREFIX = "pkg_ver_";
     private static final String KEY_GLOBAL_VER = "global_version";
+    private static final String KEY_DATA_DOWNLOADED = "game_data_downloaded_success";
 
     /** Callback listener untuk proses pengecekan dan pengunduhan */
     public static abstract class Listener {
@@ -56,7 +58,7 @@ public final class UpdateManager {
         public void onFailed(String message) { }
     }
 
-    /** Entitas satu paket data (misal: Base Cache GTA SA atau Patch CRMP) */
+    /** Entitas satu paket data */
     public static final class PackageEntry {
         public final String id;
         public final String name;
@@ -96,10 +98,8 @@ public final class UpdateManager {
             JSONObject root = new JSONObject(json);
             int version = root.optInt("version", 1);
             String clientVersion = root.optString("client_version", "1.0");
-
             List<PackageEntry> packageList = new ArrayList<>();
 
-            // Dukungan format "packages" (multi-segmen)
             JSONArray pkgsArray = root.optJSONArray("packages");
             if (pkgsArray != null) {
                 for (int i = 0; i < pkgsArray.length(); i++) {
@@ -122,7 +122,6 @@ public final class UpdateManager {
                     packageList.add(new PackageEntry(id, name, pkgVer, size, url, sha256, extractTo, reqFiles));
                 }
             } else {
-                // Fallback kompatibilitas format "files" lama
                 JSONArray filesArray = root.optJSONArray("files");
                 if (filesArray != null) {
                     for (int i = 0; i < filesArray.length(); i++) {
@@ -137,7 +136,6 @@ public final class UpdateManager {
                     }
                 }
             }
-
             return new Manifest(version, clientVersion, packageList);
         }
     }
@@ -156,8 +154,7 @@ public final class UpdateManager {
     }
 
     /**
-     * Folder penyimpanan data game.
-     * Menggunakan Android/data/<package>/files (app-specific external storage, tanpa butuh izin runtime Android 11+).
+     * Folder penyimpanan data game (Android/data/<package>/files).
      */
     public File getGameDataDir() {
         File dir = appContext.getExternalFilesDir(null);
@@ -171,28 +168,73 @@ public final class UpdateManager {
     }
 
     // ==================================================================
-    //  1. Pemeriksaan Integritas Data Game Lokal
+    //  1. Pemeriksaan Integritas Data Game Lokal (Case-Insensitive)
     // ==================================================================
 
     /**
-     * Memeriksa apakah data game utama sudah ada dan lengkap di HP.
+     * Memeriksa keberadaan file path relatif secara case-insensitive
+     * untuk mencegah kegagalan akibat perbedaan huruf besar/kecil di filesystem Linux Android.
+     */
+    public static boolean checkFileExistsCaseInsensitive(File root, String relPath) {
+        if (root == null || !root.exists()) return false;
+        File direct = new File(root, relPath);
+        if (direct.exists()) return true;
+
+        String normalized = relPath.replace('\\', '/').trim();
+        while (normalized.startsWith("/")) normalized = normalized.substring(1);
+        String[] parts = normalized.split("/");
+
+        File current = root;
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            File directPart = new File(current, part);
+            if (directPart.exists()) {
+                current = directPart;
+                continue;
+            }
+            File[] list = current.listFiles();
+            if (list == null) return false;
+            File match = null;
+            for (File f : list) {
+                if (f.getName().equalsIgnoreCase(part)) {
+                    match = f;
+                    break;
+                }
+            }
+            if (match == null) return false;
+            current = match;
+        }
+        return current.exists();
+    }
+
+    /**
+     * Memeriksa apakah data game utama sudah lengkap di HP.
      */
     public boolean isGameDataComplete() {
         File gameDir = getGameDataDir();
+
+        // 1. Jika pengguna telah berhasil download penuh sebelumnya
+        if (prefs.getBoolean(KEY_DATA_DOWNLOADED, false)) {
+            if (gameDir.exists() && gameDir.isDirectory()) {
+                String[] files = gameDir.list();
+                if (files != null && files.length >= 2) {
+                    return true;
+                }
+            }
+        }
+
+        // 2. Periksa file inti secara fisik
         if (!gameDir.exists() || !gameDir.isDirectory()) {
             return false;
         }
 
-        // File-file inti yang wajib ada agar game GTA SAMP dapat berjalan
         String[] coreFiles = new String[] {
                 "anim/anim.img",
                 "data/gta.dat",
                 "texdb/samp.img"
         };
-
         for (String relPath : coreFiles) {
-            File f = new File(gameDir, relPath);
-            if (!f.exists()) {
+            if (!checkFileExistsCaseInsensitive(gameDir, relPath)) {
                 return false;
             }
         }
@@ -200,32 +242,30 @@ public final class UpdateManager {
     }
 
     /**
-     * Mengevaluasi paket apa saja yang belum terpasang atau versinya usang
-     * berdasarkan manifest remote yang diberikan.
+     * Mengevaluasi paket apa saja yang belum terpasang.
      */
     public List<PackageEntry> filterNeededPackages(Manifest manifest) {
         List<PackageEntry> needed = new ArrayList<>();
         File gameDir = getGameDataDir();
+        boolean globalInstalled = prefs.getBoolean(KEY_DATA_DOWNLOADED, false);
 
         for (PackageEntry pkg : manifest.packages) {
             int localVer = prefs.getInt(KEY_PKG_VER_PREFIX + pkg.id, 0);
-
-            // Periksa apakah file required benar-benar ada di penyimpanan fisik
             boolean filesExist = true;
+
             if (pkg.requiredFiles != null && !pkg.requiredFiles.isEmpty()) {
                 for (String relFile : pkg.requiredFiles) {
-                    File targetFile = new File(gameDir, relFile);
-                    if (!targetFile.exists()) {
+                    if (!checkFileExistsCaseInsensitive(gameDir, relFile)) {
                         filesExist = false;
                         break;
                     }
                 }
             } else {
-                filesExist = (localVer >= pkg.version);
+                filesExist = (localVer >= pkg.version) || globalInstalled;
             }
 
-            // Jika versi lokal lebih rendah ATAU file belum lengkap di disk -> butuh unduhan
-            if (localVer < pkg.version || !filesExist) {
+            // Jika file belum ada dan versi lokal belum tercatat, masukkan ke queue
+            if (!filesExist && localVer < pkg.version) {
                 needed.add(pkg);
             }
         }
@@ -245,7 +285,6 @@ public final class UpdateManager {
                 String json = httpGet(manifestUrl);
                 Manifest manifest = Manifest.parse(json);
                 List<PackageEntry> needed = filterNeededPackages(manifest);
-
                 if (needed.isEmpty()) {
                     post(listener::onNoUpdate);
                 } else {
@@ -272,6 +311,7 @@ public final class UpdateManager {
         executor.execute(() -> {
             try {
                 if (queue.isEmpty()) {
+                    prefs.edit().putBoolean(KEY_DATA_DOWNLOADED, true).apply();
                     post(() -> listener.onInstalled(manifest));
                     return;
                 }
@@ -279,7 +319,6 @@ public final class UpdateManager {
                 File gameDir = getGameDataDir();
                 final int totalItems = queue.size();
 
-                // Hitung total byte semua file yang akan diunduh untuk kalkulasi kecepatan
                 long totalBytesAll = 0;
                 for (PackageEntry p : queue) {
                     totalBytesAll += p.size;
@@ -295,14 +334,12 @@ public final class UpdateManager {
                     final PackageEntry pkg = queue.get(i);
                     final String pkgPrefix = "(" + (i + 1) + "/" + totalItems + ") " + pkg.name;
 
-                    // Nama file unduhan sementara di cache
                     String fileName = pkg.id + ".zip";
                     File downloadFile = new File(gameDir, fileName);
 
                     final long currentBaseDownloaded = overallBytesDownloaded;
                     final long totalBytesFinal = totalBytesAll;
 
-                    // Unduh dengan pelaporan speed dan progress real-time
                     fetchFileWithSpeed(pkg.url, downloadFile, pkg.size, new SpeedCallback() {
                         @Override
                         public void onProgress(long fileDownloaded, long fileSize, float speedMBs) {
@@ -316,7 +353,6 @@ public final class UpdateManager {
                                     speedMBs,
                                     totalDownloaded / (1024f * 1024f),
                                     totalBytesFinal / (1024f * 1024f));
-
                             post(() -> listener.onProgress(percent, "Mengunduh " + pkgPrefix, speedInfo));
                         }
                     });
@@ -325,28 +361,28 @@ public final class UpdateManager {
                     final long currentExtractedBytes = overallBytesDownloaded;
                     final int extractPercent = (int) ((currentExtractedBytes * 100) / (totalBytesFinal > 0 ? totalBytesFinal : 1));
 
-                    // Ekstraksi otomatis jika file adalah arsip ZIP
-                    if (downloadFile.getName().toLowerCase().endsWith(".zip")) {
+                    if (downloadFile.getName().toLowerCase(Locale.US).endsWith(".zip")) {
                         post(() -> listener.onProgress(extractPercent, "Mengekstrak " + pkg.name + "…", "Ekstraksi"));
-
                         unzip(downloadFile, gameDir, extractedFile -> {
                             post(() -> listener.onProgress(extractPercent, "Mengekstrak: " + extractedFile, "Menyimpan ke disk"));
                         });
 
-                        // Hapus file zip sementara setelah diekstrak untuk menghemat ruang memori HP
                         if (downloadFile.exists()) {
                             downloadFile.delete();
                         }
                     }
 
-                    // Simpan versi paket ini secara lokal
                     prefs.edit().putInt(KEY_PKG_VER_PREFIX + pkg.id, pkg.version).apply();
                 }
 
-                // Tandai versi global selesai
-                prefs.edit().putInt(KEY_GLOBAL_VER, manifest.version).apply();
-                post(() -> listener.onInstalled(manifest));
+                prefs.edit()
+                        .putInt(KEY_GLOBAL_VER, manifest.version)
+                        .putBoolean(KEY_DATA_DOWNLOADED, true)
+                        .apply();
 
+                ensureSettingsIniExists(gameDir);
+
+                post(() -> listener.onInstalled(manifest));
             } catch (final Exception e) {
                 Log.e(TAG, "Update gagal: " + e.getMessage(), e);
                 post(() -> listener.onFailed(humanMessage(e)));
@@ -364,8 +400,36 @@ public final class UpdateManager {
     }
 
     // ==================================================================
-    //  Internal: Network & File Ops
+    //  Internal: Network, File Ops & Settings Setup
     // ==================================================================
+
+    public static void ensureSettingsIniExists(File gameDir) {
+        if (gameDir == null) return;
+        try {
+            File sampDir = new File(gameDir, "SAMP");
+            if (!sampDir.exists()) sampDir.mkdirs();
+            File settingsFile = new File(sampDir, "settings.ini");
+            if (!settingsFile.exists()) {
+                String defaultSettings = "[client]\n"
+                        + "ip=142.132.203.47\n"
+                        + "port=10125\n"
+                        + "name=ViceSide_Player\n"
+                        + "password=\n"
+                        + "autologin=0\n"
+                        + "server=0\n"
+                        + "debug=0\n"
+                        + "[gui]\n"
+                        + "Font=visby-round-cf-extra-bold.ttf\n"
+                        + "fps=60\n";
+                try (FileOutputStream fos = new FileOutputStream(settingsFile)) {
+                    fos.write(defaultSettings.getBytes(StandardCharsets.UTF_8));
+                    fos.flush();
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Gagal membuat default SAMP/settings.ini: " + e.getMessage());
+        }
+    }
 
     private interface SpeedCallback {
         void onProgress(long downloadedBytes, long totalBytes, float speedMBs);
@@ -388,7 +452,6 @@ public final class UpdateManager {
             if (code != HttpURLConnection.HTTP_OK) {
                 throw new IOException("HTTP " + code + " dari " + fileUrl);
             }
-
             long contentLength = conn.getContentLengthLong();
             if (contentLength <= 0) contentLength = expectedSize;
 
@@ -397,7 +460,6 @@ public final class UpdateManager {
 
                 byte[] buffer = new byte[32 * 1024];
                 int read;
-
                 while ((read = in.read(buffer)) != -1) {
                     if (cancelled.get()) {
                         throw new IOException("Dibatalkan pengguna");
@@ -407,11 +469,12 @@ public final class UpdateManager {
 
                     long now = System.currentTimeMillis();
                     long timeDiff = now - lastTime;
-                    if (timeDiff >= 400) { // Update speed setiap 400ms
+                    if (timeDiff >= 400) {
                         long bytesDiff = downloaded - lastBytes;
                         currentSpeed = (bytesDiff / (timeDiff / 1000f)) / (1024f * 1024f);
                         lastTime = now;
                         lastBytes = downloaded;
+
                         if (callback != null) {
                             callback.onProgress(downloaded, contentLength, currentSpeed);
                         }
@@ -424,7 +487,6 @@ public final class UpdateManager {
             if (!tempFile.renameTo(destFile)) {
                 throw new IOException("Gagal memindahkan file part ke " + destFile.getName());
             }
-
         } finally {
             conn.disconnect();
             if (tempFile.exists() && cancelled.get()) {
@@ -441,14 +503,22 @@ public final class UpdateManager {
                 if (cancelled.get()) {
                     throw new IOException("Ekstraksi dibatalkan");
                 }
-                String entryName = ze.getName();
-                if (entryName.startsWith("files/") || entryName.startsWith("files/")) {
+                String entryName = ze.getName().replace('\\', '/');
+                String lower = entryName.toLowerCase(Locale.US);
+
+                if (lower.startsWith("files/")) {
                     entryName = entryName.substring(6);
+                } else if (lower.startsWith("com.viceside.mobile/files/")) {
+                    entryName = entryName.substring(27);
+                } else if (lower.startsWith("com.russia.game/files/")) {
+                    entryName = entryName.substring(22);
                 }
-                if (entryName.trim().isEmpty()) {
+
+                if (entryName.trim().isEmpty() || entryName.startsWith("__MACOSX")) {
                     zis.closeEntry();
                     continue;
                 }
+
                 File target = resolveSafe(targetDir, entryName);
                 if (ze.isDirectory()) {
                     target.mkdirs();
@@ -458,7 +528,7 @@ public final class UpdateManager {
                         parent.mkdirs();
                     }
                     if (callback != null) {
-                        callback.onExtracting(ze.getName());
+                        callback.onExtracting(target.getName());
                     }
                     try (FileOutputStream fos = new FileOutputStream(target)) {
                         int len;

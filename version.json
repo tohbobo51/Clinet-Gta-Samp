@@ -15,8 +15,7 @@
       "extract_to": "",
       "required_files": [
         "anim/anim.img",
-        "data/gta.dat",
-        "audio/SFX/FEET"
+        "data/gta.dat"
       ]
     },
     {
@@ -28,8 +27,7 @@
       "sha256": "4854d4176df5a8da3da17bf4aaf58e374c395ab0e1cb68be0a83ab0f6889c7ec",
       "extract_to": "",
       "required_files": [
-        "texdb/samp.img",
-        "SAMP/samp.ide"
+        "texdb/samp.img"
       ]
     }
   ]

@@ -71,4 +71,11 @@
     <string name="btn_update">DOWNLOAD</string>
     <string name="btn_cancel">BATAL</string>
     <string name="cef_webview_url">https://openmp-gm.vercel.app/auth/google</string>
+
+    <!-- Game APK Download Dialog -->
+    <string name="game_not_installed_title">Game Client Belum Terpasang</string>
+    <string name="game_not_installed_msg">Aplikasi Game GTA SA-MP Vice Side (com.russia.game) belum terpasang di HP Anda.\n\nUnduh dan pasang APK Game agar tombol PLAY dapat langsung menjalankan permainan.</string>
+    <string name="btn_download_apk">DOWNLOAD APK GAME</string>
+    <string name="game_apk_download_url">https://github.com/tohbobo51/SA-MP-Mobile-Client-GTA-SA-2.10/releases/download/build-5/app-ver_release-release.apk</string>
+    <string name="dialog_change_nickname_title">Ubah Nickname Roleplay</string>
 </resources>

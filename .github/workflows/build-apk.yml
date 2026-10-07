@@ -7,11 +7,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Assemble debug APK
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: gta-samp-client
@@ -29,7 +31,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          # AGP 8.1.x requires Gradle 8.x and JDK 17.
           gradle-version: '8.4'
 
       - name: Grant execute permission for gradlew
@@ -45,3 +46,20 @@ jobs:
           name: samp-client-debug-apk
           path: gta-samp-client/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: client-v${{ github.run_number }}
+          name: "Vice Side Mobile Client (Build #${{ github.run_number }})"
+          body: |
+            Automated Android APK build for Vice Side Mobile Launcher Client.
+            - Fix download loop bug: case-insensitive data checks & verified required_files in version.json.
+            - Fix Play button connecting bug: added package visibility (<queries>), auto-generated SAMP/settings.ini (IP: 142.132.203.47:10125), and direct launch of SA-MP game APK.
+            - Added Game APK download helper dialog if SA-MP engine is not yet installed.
+          files: gta-samp-client/app/build/outputs/apk/debug/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
